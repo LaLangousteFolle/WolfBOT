@@ -2,11 +2,11 @@
 import os
 
 # IDs de tes salons
-log_channel_id = 123456789012345678
-wolf_channel_id = 123456789012345678
-seer_channel_id = 123456789012345678
-witch_channel_id = 123456789012345678
-voice_channel_id = 123456789012345678
+log_channel_id = 1366109644707070032
+wolf_channel_id = 1365955043215278111
+seer_channel_id = 1366063228240789584
+witch_channel_id = 1366063263996973077
+voice_channel_id = 1366017756171866203
 cupidon_channel_id = 1366699130071547955
 amoureux_channel_id = 1366699189941305354
 
