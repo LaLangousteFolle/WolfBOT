@@ -50,6 +50,16 @@ async def start_game(ctx):
     state.victim_of_witch = None
     state.tir_cible = None
 
+    # Vérification du nombre de joueurs
+    total_roles = sum(role_data['quantity'] for role_data in config.ROLES_CONFIG.values())
+    if len(state.join_users) < total_roles:
+        await ctx.send(embed=create_embed(
+            "Erreur",
+            f"Pas assez de joueurs pour distribuer tous les rôles ({len(state.join_users)}/{total_roles})."
+        ))
+        state.game_active = False
+        return
+
     # Distribution des rôles
     random.shuffle(state.join_users)
     roles = [role for role, role_data in config.ROLES_CONFIG.items() for _ in range(role_data['quantity'])]
@@ -59,8 +69,17 @@ async def start_game(ctx):
         state.players[member] = role
         try:
             await member.send(f"Vous êtes **{role}** {config.ROLES_CONFIG[role]['emoji']}")
-        except:
-            pass
+        except discord.Forbidden:
+            await ctx.send(embed=create_embed(
+                "Erreur",
+                f"Impossible d'envoyer un DM à {member.display_name}. Vérifiez que vos messages privés sont ouverts."
+            ))
+        except Exception as e:
+            await ctx.send(embed=create_embed(
+                "Erreur",
+                f"Une erreur est survenue pour {member.display_name}: {str(e)}"
+            ))
+
         if role == 'Voyante':
             state.voyante = member
         if role == 'Sorcière':
@@ -71,8 +90,8 @@ async def start_game(ctx):
             state.chasseur = member
 
     await init_channels(ctx.guild)
-    await ctx.send(embed=create_embed("Rôles", "Les rôles ont été attribués."))
-    await cupidon_phase(ctx)
+    await ctx.send(embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"))
+
     await night_phase(ctx)
 
 async def cupidon_phase(ctx):
@@ -98,6 +117,7 @@ async def night_phase(ctx):
 
     await mute_voice_channel()
 
+    await cupidon_phase(ctx)
     await voyante_phase(ctx)
     await loups_phase(ctx)
     await sorciere_phase(ctx)

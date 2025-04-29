@@ -8,21 +8,47 @@ from utils import create_embed
 def setup_commands(bot):
     @bot.command()
     async def start(ctx):
-        """Démarre une partie."""
-        await game.start_game(ctx)
+        """Commence la phase d'inscription des joueurs."""
+        if state.game_active:
+            await ctx.send(embed=create_embed("Erreur", "Une partie est déjà en cours."))
+            return
+
+        state.game_active = True
+        state.players.clear()
+        state.join_users.clear()
+        state.dead_players.clear()
+        state.votes.clear()
+        state.join_locked = False
+
+        join_msg = await ctx.send(embed=create_embed(
+            "🎉 Nouvelle Partie",
+            "Réagissez avec ✅ pour rejoindre la partie !\nQuand tout le monde est prêt, tapez `!lock`."
+        ))
+        state.join_message = join_msg
+        await join_msg.add_reaction("✅")
+
 
     @bot.command()
     async def lock(ctx):
-        """Verrouille les inscriptions et prépare la distribution des rôles."""
+        """Verrouille les inscriptions et lance la distribution des rôles."""
         if not state.join_message:
             await ctx.send(embed=create_embed("Erreur", "Aucune partie en cours d'attente de joueurs."))
             return
 
         state.join_locked = True
         fetched = await ctx.channel.fetch_message(state.join_message.id)
-        state.join_users.extend([user async for user in fetched.reactions[0].users() if not user.bot])
+        players = [user async for user in fetched.reactions[0].users() if not user.bot]
 
+        if len(players) < 2:
+            await ctx.send(embed=create_embed("Erreur", "Pas assez de joueurs pour démarrer."))
+            state.game_active = False
+            return
+
+        state.join_users = players
         await ctx.send(embed=create_embed("Verrouillage", f"{len(state.join_users)} joueurs ont rejoint."))
+        
+        # Maintenant on lance la vraie partie
+        await game.start_game(ctx)
 
     @bot.command()
     async def stop(ctx):
