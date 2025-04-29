@@ -3,6 +3,7 @@
 import discord
 import asyncio
 import config
+import random
 import state
 from utils import create_embed, mute_voice_channel, unmute_voice_channel, remove_channel_permissions
 
