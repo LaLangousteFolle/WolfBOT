@@ -40,5 +40,9 @@ async def main():
         await bot.start(BOT_TOKEN)
 
 if __name__ == "__main__":
-    keep_alive()  # Garde le bot vivant sur Railway
+    keep_alive()  # Garde le bot actif via Flask
     asyncio.run(main())
+
+    import time
+    while True:
+        time.sleep(60)  # Empêche la fermeture du conteneur Railway
