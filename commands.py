@@ -89,3 +89,36 @@ def setup_commands(bot):
         state.victim_of_witch = joueur
         state.witch_kill_used = True
         await ctx.send(embed=create_embed("Sorcière", f"Vous avez décidé d'empoisonner {joueur.display_name}."))
+        
+    @bot.command()
+    async def choisir(ctx, joueur1: commands.MemberConverter, joueur2: commands.MemberConverter):
+        """Cupidon choisit deux amoureux."""
+        if ctx.author != state.cupidon or state.current_phase != 'night':
+            await ctx.send(embed=create_embed("Erreur", "Vous n'avez pas le droit d'utiliser cette commande."))
+            return
+        if joueur1 == joueur2 or joueur1 not in state.players or joueur2 not in state.players:
+            await ctx.send(embed=create_embed("Erreur", "Sélection invalide."))
+            return
+
+        state.amoureux_pair = [joueur1, joueur2]
+
+        await state.amoureux_channel.set_permissions(joueur1, read_messages=True, send_messages=True, add_reactions=True)
+        await state.amoureux_channel.set_permissions(joueur2, read_messages=True, send_messages=True, add_reactions=True)
+
+        await state.cupidon_channel.send(embed=create_embed(
+            "Cupidon", f"💘 {joueur1.display_name} et {joueur2.display_name} sont désormais liés par l'amour éternel."
+        ))
+
+    @bot.command()
+    async def tirer(ctx, joueur: commands.MemberConverter):
+        """Le Chasseur tire après sa mort."""
+        if ctx.author != state.tir_cible:
+            await ctx.send(embed=create_embed("Erreur", "Vous n'avez pas le droit de tirer."))
+            return
+        if joueur not in state.players or joueur in state.dead_players:
+            await ctx.send(embed=create_embed("Erreur", "Cible invalide."))
+            return
+
+        await ctx.send(embed=create_embed("🏹 Dernière flèche", f"{ctx.author.display_name} tire et tue {joueur.display_name} avant de mourir."))
+        await game.remove_player(ctx, joueur)
+        state.tir_cible = None  # Reset
