@@ -1,4 +1,6 @@
 # config.py
+import os
+BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 # IDs de tes salons
 log_channel_id = 123456789012345678
