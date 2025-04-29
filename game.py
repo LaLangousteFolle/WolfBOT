@@ -1,14 +1,12 @@
 # game.py
 
 import discord
-import discord
 import asyncio
 import config
 import random
 import state
 from utils import create_embed, mute_voice_channel, unmute_voice_channel, remove_channel_permissions
 
-# Lore pour chaque rôle
 ROLE_LORE = {
     'Loup-Garou': "Tu es une créature nocturne. À la nuit tombée, tu chasses en meute, silencieux et sanguinaire...",
     'Voyante': "La lune éclaire ta boule de cristal. Chaque nuit, tu scrutes les âmes pour découvrir leur vraie nature...",
@@ -18,33 +16,9 @@ ROLE_LORE = {
     'Chasseur': "Ton doigt est sur la gâchette. Si tu tombes, tu ne partiras pas seul..."
 }
 
-async def init_channels(guild):
-    state.log_channel = guild.get_channel(config.log_channel_id)
-    state.wolf_channel = guild.get_channel(config.wolf_channel_id)
-    state.seer_channel = guild.get_channel(config.seer_channel_id)
-    state.witch_channel = guild.get_channel(config.witch_channel_id)
-    state.voice_channel = guild.get_channel(config.voice_channel_id)
-    state.cupidon_channel = guild.get_channel(config.cupidon_channel_id)
-    state.amoureux_channel = guild.get_channel(config.amoureux_channel_id)
+async def start_game(interaction):
+    await interaction.response.defer()
 
-    channels = [state.log_channel, state.wolf_channel, state.seer_channel, state.witch_channel, state.cupidon_channel, state.amoureux_channel]
-    if not all(channels):
-        raise ValueError("Mauvais IDs de salons.")
-
-    for channel in [state.wolf_channel, state.seer_channel, state.witch_channel, state.cupidon_channel, state.amoureux_channel]:
-        await channel.set_permissions(guild.default_role, read_messages=False)
-
-    for player, role in state.players.items():
-        if role == 'Loup-Garou':
-            await state.wolf_channel.set_permissions(player, read_messages=True, send_messages=True, add_reactions=True)
-        if role == 'Voyante':
-            await state.seer_channel.set_permissions(player, read_messages=True, send_messages=True, add_reactions=True)
-        if role == 'Sorcière':
-            await state.witch_channel.set_permissions(player, read_messages=True, send_messages=True, add_reactions=True)
-        if role == 'Cupidon':
-            await state.cupidon_channel.set_permissions(player, read_messages=True, send_messages=True, add_reactions=True)
-
-async def start_game(ctx):
     state.game_active = True
     state.votes.clear()
     state.wolf_votes.clear()
@@ -59,7 +33,10 @@ async def start_game(ctx):
 
     total_roles = sum(role_data['quantity'] for role_data in config.ROLES_CONFIG.values())
     if len(state.join_users) < total_roles:
-        await ctx.send(embed=create_embed("Erreur", f"Pas assez de joueurs pour distribuer tous les rôles ({len(state.join_users)}/{total_roles})."))
+        await interaction.channel.send(embed=create_embed(
+            "Erreur",
+            f"Pas assez de joueurs pour distribuer tous les rôles ({len(state.join_users)}/{total_roles})."
+        ))
         state.game_active = False
         return
 
@@ -74,7 +51,9 @@ async def start_game(ctx):
                 f"🎭 Tu es **{role}** {config.ROLES_CONFIG[role]['emoji']}\n\n{ROLE_LORE.get(role, 'Prépare-toi pour la partie...')}"
             )
         except discord.Forbidden:
-            await ctx.send(embed=create_embed("Erreur", f"Impossible d'envoyer un DM à {member.display_name}."))
+            await interaction.channel.send(embed=create_embed("Erreur", f"Impossible d'envoyer un DM à {member.display_name}."))
+        except Exception as e:
+            await interaction.channel.send(embed=create_embed("Erreur", f"Une erreur est survenue avec {member.display_name} : {str(e)}"))
 
         if role == 'Voyante':
             state.voyante = member
@@ -85,26 +64,10 @@ async def start_game(ctx):
         if role == 'Chasseur':
             state.chasseur = member
 
-    await init_channels(ctx.guild)
-    await ctx.send(embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"))
-    await night_phase(ctx)
-
-async def night_phase(ctx):
-    state.current_phase = 'night'
-    state.wolf_votes.clear()
-    state.vision_used = False
-    state.victim_of_wolves = None
-    state.victim_of_witch = None
-
-    await mute_voice_channel()
-
-    await cupidon_phase(ctx)
-    await voyante_phase(ctx)
-    await loups_phase(ctx)
-    await sorciere_phase(ctx)
-
-    await resolve_night(ctx)
-
+    await init_channels(interaction.guild)
+    await interaction.channel.send(embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"))
+    await night_phase(interaction)
+    
 async def cupidon_phase(ctx):
     state.current_phase = 'cupidon'
     if state.cupidon and state.cupidon not in state.dead_players:
