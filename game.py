@@ -52,7 +52,7 @@ async def start_game(ctx):
 
     # Distribution des rôles
     random.shuffle(state.join_users)
-    roles = [role for role, config in config.ROLES_CONFIG.items() for _ in range(config.ROLES_CONFIG[role]['quantity'])]
+    roles = [role for role, role_data in config.ROLES_CONFIG.items() for _ in range(role_data['quantity'])]
     random.shuffle(roles)
 
     for member, role in zip(state.join_users, roles):
