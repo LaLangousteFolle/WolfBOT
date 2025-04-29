@@ -72,12 +72,12 @@ async def start_game(ctx):
         except discord.Forbidden:
             await ctx.send(embed=create_embed(
                 "Erreur",
-                f"Impossible d'envoyer un DM à {member.display_name}. Vérifiez que vos messages privés sont ouverts."
+                f"Impossible d'envoyer un DM à {member.display_name}. Vérifiez que ses messages privés sont ouverts."
             ))
         except Exception as e:
             await ctx.send(embed=create_embed(
                 "Erreur",
-                f"Une erreur est survenue pour {member.display_name}: {str(e)}"
+                f"Une erreur est survenue pour {member.display_name} : {str(e)}"
             ))
 
         if role == 'Voyante':
@@ -99,12 +99,14 @@ async def cupidon_phase(ctx):
     state.current_phase = 'cupidon'
     if state.cupidon and state.cupidon not in state.dead_players:
         await state.cupidon_channel.send(embed=create_embed(
-            "Cupidon", "Choisissez deux joueurs avec `!choisir @joueur1 @joueur2`."
+            "💘 Cupidon",
+            "Cupidon s’éveille sous les étoiles, il bande son arc. Deux âmes vont être liées à jamais, dans l’amour (aux limites du consentement), mais aussi dans la tragédie. "
+            "Utilisez la commande `!cupidon @joueur1 @joueur2` pour sceller leur destin."
         ))
         await asyncio.sleep(90)
         if len(state.amoureux_pair) < 2:
             await state.cupidon_channel.send(embed=create_embed(
-                "Cupidon", "⏰ Temps écoulé, pas de couple choisi."
+                "💘 Cupidon", "⏰ Il fait désormais trop sombre pour viser. Tirer une flèche à l’aveugle est trop risqué, vous décidez donc de retourner vous coucher."
             ))
 
 async def night_phase(ctx):
@@ -126,12 +128,14 @@ async def night_phase(ctx):
 
 async def voyante_phase(ctx):
     if state.voyante and state.voyante not in state.dead_players:
-        await state.seer_channel.send(f"{state.voyante.mention}, utilisez `!voir_role @joueur` pour inspecter.")
+        await state.seer_channel.send(f"{state.voyante.mention}, dans la brume noire de la nuit, votre troisième œil s’ouvre. "
+                                      "Votre boule de cristal scintille… Utilisez `!voir_role @joueur` pour sonder un esprit.")
         await asyncio.sleep(config.PHASE_TIMEOUTS['role_action'])
 
 async def loups_phase(ctx):
     await state.wolf_channel.send(embed=create_embed(
-        "Loups-Garous", "Discutez et choisissez une cible avec `!lg_vote @joueur`."
+        "🐺 Loups-Garous", "Cette nuit, la lune est pleine à nouveau, et rien ne saurait apaiser votre soif de sang. "
+        "Discutez et choisissez une cible pour nourrir la meute avec `!lg_vote @joueur`."
     ))
     await asyncio.sleep(config.PHASE_TIMEOUTS['role_action'])
 
@@ -139,11 +143,13 @@ async def sorciere_phase(ctx):
     if state.sorciere and state.sorciere not in state.dead_players:
         if state.victim_of_wolves and not state.witch_heal_used:
             await state.witch_channel.send(embed=create_embed(
-                "Sorcière", f"{state.sorciere.mention}, {state.victim_of_wolves.display_name} est blessé. `!sauver` pour sauver. `!tuer @joueur` pour empoisonner."
+                "🧙‍♀️ Sorcière",
+                f"{state.sorciere.mention}, lors d'une cueillette nocturne, vous trébuchez sur le corps inanimé de {state.victim_of_wolves.display_name}. "
+                "Utilisez `!sauver` pour le ranimer, ou `!tuer @joueur` pour empoisonner une âme fautive… ou retournez simplement à votre hutte."
             ))
         else:
             await state.witch_channel.send(embed=create_embed(
-                "Sorcière", "Vous pouvez encore utiliser `!tuer @joueur` si vous le souhaitez."
+                "🧙‍♀️ Sorcière", "Vous pouvez encore utiliser `!tuer @joueur` si vous le souhaitez."
             ))
         await asyncio.sleep(config.PHASE_TIMEOUTS['role_action'])
 
@@ -161,16 +167,16 @@ async def resolve_night(ctx):
 
     if deaths:
         morts = ", ".join(p.display_name for p in deaths)
-        await ctx.send(embed=create_embed("☠️ Victimes", f"Ce matin, {morts} ont été retrouvés morts."))
+        await ctx.send(embed=create_embed("☠️ Victimes", f"🐓 Le coq chante, le village se réveille, et ce matin {morts} gisaient sur la place..."))
     else:
-        await ctx.send(embed=create_embed("🌞", "La nuit fut calme..."))
+        await ctx.send(embed=create_embed("🌞 Aube paisible", "🌇 Le jour se lève, tout semble en place, la nuit fut calme..."))
 
     await day_phase(ctx)
 
 async def day_phase(ctx):
     state.current_phase = 'day'
     await ctx.send(embed=create_embed(
-        "Vote", "Utilisez `!vote @joueur` pour voter contre un suspect."
+        "📩 Vote", "👨‍🌾 Quelqu’un doit payer ! Les loups sont parmi nous. Utilisez `!vote @joueur` pour désigner un suspect."
     ))
     await asyncio.sleep(config.PHASE_TIMEOUTS['day'])
     await end_day_phase(ctx)
@@ -184,11 +190,11 @@ async def end_day_phase(ctx):
 
             eliminated = max(vote_counts, key=vote_counts.get)
             await ctx.send(embed=create_embed(
-                "⚖️ Verdict", f"{eliminated.display_name} a été éliminé par le village."
+                "⚖️ Verdict", f"La lapidation aura eu raison de {eliminated.display_name}. Une sépulture simple lui sera dédiée. 🪦"
             ))
             await remove_player(ctx, eliminated)
         else:
-            await ctx.send(embed=create_embed("⚖️ Verdict", "Personne n'a été éliminé aujourd'hui."))
+            await ctx.send(embed=create_embed("⚖️ Verdict", "La tension est redescendue, personne ne sera condamné aujourd’hui."))
 
         state.votes.clear()
         await check_game_end(ctx)
@@ -201,35 +207,36 @@ async def remove_player(ctx, player):
     state.dead_players.add(player)
 
     await remove_channel_permissions(player)
-    await ctx.send(embed=create_embed("Révélation", f"{player.display_name} était **{role}**."))
+    await ctx.send(embed=create_embed("✝️ Révélation", f"{player.display_name} était **{role}**."))
 
     # Amoureux
     if player in state.amoureux_pair:
         for autre in state.amoureux_pair:
             if autre != player and autre not in state.dead_players:
                 await ctx.send(embed=create_embed(
-                    "💔 Drame", f"{autre.display_name} ne peut vivre sans son amour et meurt également."
+                    "💔 Drame", f"{autre.display_name} ne peut vivre sans sa moitié et se donne la mort."
                 ))
                 await remove_player(ctx, autre)
 
     # Chasseur
     if role == 'Chasseur':
         await ctx.send(embed=create_embed(
-            "🏹 Chasseur", f"{player.display_name}, utilisez `!tirer @joueur` pour venger votre mort !"
+            "🏹 Chasseur", f"{player.display_name}, dans votre dernier souffle, vous attrapez votre arme. "
+                          "Utilisez `!tirer @joueur` pour emporter un ennemi avec vous."
         ))
         state.tir_cible = player
 
 async def check_game_end(ctx):
     roles_vivants = [role for role in state.players.values()]
     if roles_vivants.count('Loup-Garou') == 0:
-        await ctx.send(embed=create_embed("🏆 Victoire", "Les Villageois ont gagné !"))
+        await ctx.send(embed=create_embed("🏆 Victoire Village", "Les Loups-Garous sont défaits. Le village peut pleurer ses morts et célébrer sa victoire !"))
         await end_game(ctx)
     elif roles_vivants.count('Loup-Garou') >= len(roles_vivants) / 2:
-        await ctx.send(embed=create_embed("🌑 Victoire", "Les Loups-Garous ont gagné !"))
+        await ctx.send(embed=create_embed("🌑 Victoire Loups", "Plus aucun villageois n’est en mesure de résister aux Loups-Garous !"))
         await end_game(ctx)
     else:
         await night_phase(ctx)
 
 async def end_game(ctx):
     state.game_active = False
-    await ctx.send(embed=create_embed("🏁 Fin", "La partie est terminée. Merci d'avoir joué !"))
+    await ctx.send(embed=create_embed("🏁 Fin", "La partie est terminée. Merci d’avoir joué !"))
