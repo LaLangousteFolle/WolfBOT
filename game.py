@@ -5,7 +5,7 @@ import asyncio
 import config
 import random
 import state
-from utils import create_embed, mute_voice_channel, unmute_voice_channel, remove_channel_permissions
+from utils import create_embed, mute_voice_channel, unmute_voice_channel, remove_channel_permissions, init_channels
 
 ROLE_LORE = {
     'Loup-Garou': "Tu es une créature nocturne. À la nuit tombée, tu chasses en meute, silencieux et sanguinaire...",
@@ -44,48 +44,66 @@ async def start_game(interaction):
     roles = [role for role, role_data in config.ROLES_CONFIG.items() for _ in range(role_data['quantity'])]
     random.shuffle(roles)
 
+    tasks = []
     for member, role in zip(state.join_users, roles):
         state.players[member] = role
-        try:
-            await member.send(
-                f"🎭 Tu es **{role}** {config.ROLES_CONFIG[role]['emoji']}\n\n{ROLE_LORE.get(role, 'Prépare-toi pour la partie...')}"
-            )
-        except discord.Forbidden:
-            await interaction.channel.send(embed=create_embed("Erreur", f"Impossible d'envoyer un DM à {member.display_name}."))
-        except Exception as e:
-            await interaction.channel.send(embed=create_embed("Erreur", f"Une erreur est survenue avec {member.display_name} : {str(e)}"))
+        tasks.append(member.send(
+            f"🎭 Tu es **{role}** {config.ROLES_CONFIG[role]['emoji']}\n\n{ROLE_LORE.get(role, 'Prépare-toi pour la partie...')}"
+        ))
+        if role == 'Voyante': state.voyante = member
+        if role == 'Sorcière': state.sorciere = member
+        if role == 'Cupidon': state.cupidon = member
+        if role == 'Chasseur': state.chasseur = member
 
-        if role == 'Voyante':
-            state.voyante = member
-        if role == 'Sorcière':
-            state.sorciere = member
-        if role == 'Cupidon':
-            state.cupidon = member
-        if role == 'Chasseur':
-            state.chasseur = member
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    for member, result in zip(state.join_users, results):
+        if isinstance(result, discord.Forbidden):
+            await interaction.channel.send(embed=create_embed("Erreur", f"Impossible d'envoyer un DM à {member.display_name}."))
+        elif isinstance(result, Exception):
+            await interaction.channel.send(embed=create_embed("Erreur", f"Une erreur est survenue avec {member.display_name} : {str(result)}"))
 
     await init_channels(interaction.guild)
     await interaction.channel.send(embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"))
+    await interaction.followup.send("🎮 La partie a bien démarré !")
     await night_phase(interaction)
     
+
+async def night_phase(ctx):
+    state.current_phase = 'night'
+    await mute_voice_channel()
+    await cupidon_phase(ctx)
+    await voyante_phase(ctx)
+    await loups_phase(ctx)
+    await sorciere_phase(ctx)
+    await resolve_night(ctx)
+
 async def cupidon_phase(ctx):
     state.current_phase = 'cupidon'
     if state.cupidon and state.cupidon not in state.dead_players:
         await state.cupidon_channel.send(embed=create_embed(
-            "💘 Cupidon", "Cupidon s’éveille sous les étoiles, prêt à unir deux âmes. Utilisez `!cupidon @joueur1 @joueur2`."
+            "💘 Cupidon", "Cupidon s’éveille sous les étoiles. Utilisez `!cupidon @joueur1 @joueur2`."
         ))
-        await asyncio.sleep(90)
+        for _ in range(45):
+            await asyncio.sleep(2)
+            if len(state.amoureux_pair) == 2:
+                return
         if len(state.amoureux_pair) < 2:
             await state.cupidon_channel.send(embed=create_embed("Cupidon", "⏰ Temps écoulé, aucun couple n’a été formé."))
 
 async def voyante_phase(ctx):
     if state.voyante and state.voyante not in state.dead_players:
-        await state.seer_channel.send(f"{state.voyante.mention}, utilisez `!voir_role @joueur` pour inspecter.")
-        await asyncio.sleep(config.PHASE_TIMEOUTS['role_action'])
+        await state.seer_channel.send(f"{state.voyante.mention}, utilisez `!voir_role @joueur`.")
+        for _ in range(config.PHASE_TIMEOUTS['role_action'] // 2):
+            await asyncio.sleep(2)
+            if state.vision_used:
+                break
 
 async def loups_phase(ctx):
     await state.wolf_channel.send(embed=create_embed("🐺 Loups-Garous", "Discutez et votez avec `!lg_vote @joueur`."))
-    await asyncio.sleep(config.PHASE_TIMEOUTS['role_action'])
+    for _ in range(config.PHASE_TIMEOUTS['role_action'] // 2):
+        await asyncio.sleep(2)
+        if len(state.wolf_votes) >= len([p for p in state.players if state.players[p] == 'Loup-Garou']):
+            break
 
 async def sorciere_phase(ctx):
     if state.sorciere and state.sorciere not in state.dead_players:
@@ -93,7 +111,10 @@ async def sorciere_phase(ctx):
             await state.witch_channel.send(embed=create_embed("Sorcière", f"{state.sorciere.mention}, {state.victim_of_wolves.display_name} est attaqué. `!sauver` ou `!tuer @joueur`."))
         else:
             await state.witch_channel.send(embed=create_embed("Sorcière", "Vous pouvez encore utiliser `!tuer @joueur`."))
-        await asyncio.sleep(config.PHASE_TIMEOUTS['role_action'])
+        for _ in range(config.PHASE_TIMEOUTS['role_action'] // 2):
+            await asyncio.sleep(2)
+            if state.witch_heal_used or state.witch_kill_used:
+                break
 
 async def resolve_night(ctx):
     await unmute_voice_channel()
@@ -117,9 +138,8 @@ async def resolve_night(ctx):
 
 async def day_phase(ctx):
     state.current_phase = 'day'
-
     living_players = [p for p in state.players if p not in state.dead_players]
-    emojis = list(map(chr, range(0x1F1E6, 0x1F1E6 + len(living_players))) )  # 🇦 -> 🇿
+    emojis = list(map(chr, range(0x1F1E6, 0x1F1E6 + len(living_players))))
     vote_map = dict(zip(emojis, living_players))
 
     desc = "\n".join(f"{emoji} : {player.display_name}" for emoji, player in vote_map.items())
@@ -129,7 +149,13 @@ async def day_phase(ctx):
     for emoji in vote_map:
         await vote_msg.add_reaction(emoji)
 
-    await asyncio.sleep(config.PHASE_TIMEOUTS['day'])
+    for _ in range(config.PHASE_TIMEOUTS['day'] // 2):
+        await asyncio.sleep(2)
+        msg = await ctx.channel.fetch_message(vote_msg.id)
+        counts = [r.count - 1 for r in msg.reactions if r.emoji in vote_map]
+        if sum(counts) >= len(vote_map):
+            break
+
     msg = await ctx.channel.fetch_message(vote_msg.id)
     reaction_counts = {vote_map[r.emoji]: r.count - 1 for r in msg.reactions if r.emoji in vote_map}
 
