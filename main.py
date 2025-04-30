@@ -1,5 +1,3 @@
-# main.py
-
 import os
 import discord
 from discord.ext import commands
@@ -11,7 +9,7 @@ import asyncio
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Intents nécessaires pour le bot
+# Intents nécessaires
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
@@ -31,18 +29,12 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Erreur de synchronisation des slash commands : {e}")
 
-async def main():
-    async with bot:
-        # Charger toutes les extensions (commandes)
-        await bot.load_extension("commands.general")  # général (start, lock, stop)
-        await bot.load_extension("commands.vote")      # vote de jour/nuit
-        await bot.load_extension("commands.roles")     # pouvoirs spéciaux
-        await bot.start(BOT_TOKEN)
+async def bot_main():
+    await bot.load_extension("commands.general")
+    await bot.load_extension("commands.vote")
+    await bot.load_extension("commands.roles")
+    await bot.start(BOT_TOKEN)  # NE se termine jamais tant que le bot tourne
 
 if __name__ == "__main__":
-    keep_alive()  # Garde le bot actif via Flask
-    asyncio.run(main())
-
-    import time
-    while True:
-        time.sleep(60)  # Empêche la fermeture du conteneur Railway
+    keep_alive()
+    asyncio.run(bot_main())  # Pas de "async with bot:"
