@@ -15,12 +15,10 @@ class General(commands.Cog):
 
     @app_commands.command(name="lock", description="Verrouille les inscriptions")
     async def lock(self, interaction: discord.Interaction):
-        await interaction.response.defer()
         await game.lock_game(interaction)
 
     @app_commands.command(name="stop", description="Arrête la partie")
     async def stop(self, interaction: discord.Interaction):
-        await interaction.response.defer()
         await game.end_game(interaction)
 
 async def setup(bot):
