@@ -40,8 +40,16 @@ async def bot_main():
         print(f"❌ Le bot a crashé : {e}")
         import time
         while True:
-            time.sleep(60)  # boucle infinie de secours
+            time.sleep(60)
 
 if __name__ == "__main__":
     keep_alive()
-    asyncio.run(bot_main())
+    try:
+        asyncio.run(bot_main())
+    except Exception as e:
+        print(f"❌ Crash de haut niveau : {e}")
+
+    import time
+    while True:
+        print("🌀 Boucle de maintien active pour Railway...")
+        time.sleep(60)
