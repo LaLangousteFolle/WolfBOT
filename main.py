@@ -32,6 +32,7 @@ async def on_ready():
 async def bot_main():
     await bot.load_extension("commands.general")
     await bot.load_extension("commands.vote")
+    await bot.load_extension("commands.config")
     await bot.load_extension("commands.roles")
     try:
         print("🔐 TOKEN =", BOT_TOKEN)

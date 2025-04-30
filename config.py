@@ -12,12 +12,12 @@ amoureux_channel_id = 1366699189941305354
 
 # Configuration des rôles
 ROLES_CONFIG = {
-    'Loup-Garou': {'quantity': 1, 'team': 'mal', 'emoji': '🐺'},
-    'Voyante': {'quantity': 1, 'team': 'bon', 'emoji': '🔮'},
+    'Loup-Garou': {'quantity': 0, 'team': 'mal', 'emoji': '🐺'},
+    'Voyante': {'quantity': 0, 'team': 'bon', 'emoji': '🔮'},
     'Villageois': {'quantity': 0, 'team': 'bon', 'emoji': '👨‍🌾'},
-    'Sorcière': {'quantity': 1, 'team': 'bon', 'emoji': '🧙‍♀️'},
+    'Sorcière': {'quantity': 0, 'team': 'bon', 'emoji': '🧙‍♀️'},
     'Cupidon': {'quantity': 1, 'team': 'bon', 'emoji': '💘'},
-    'Chasseur': {'quantity': 1, 'team': 'bon', 'emoji': '🏹'}
+    'Chasseur': {'quantity': 0, 'team': 'bon', 'emoji': '🏹'}
 }
 
 PHASE_TIMEOUTS = {

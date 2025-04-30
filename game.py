@@ -1,10 +1,10 @@
-# game.py
-
+import os
 import discord
 import asyncio
-import config
 import random
+import config
 import state
+from discord import app_commands
 from utils import create_embed, mute_voice_channel, unmute_voice_channel, remove_channel_permissions, init_channels
 
 ROLE_LORE = {
@@ -15,6 +15,47 @@ ROLE_LORE = {
     'Cupidon': "Tu bandes ton arc sous les étoiles. Deux cœurs vont s’unir dans l’amour, ou la tragédie...",
     'Chasseur': "Ton doigt est sur la gâchette. Si tu tombes, tu ne partiras pas seul..."
 }
+
+ROLE_EMOJIS = {
+    "🐺": "Loup-Garou",
+    "🔮": "Voyante",
+    "👨‍🌾": "Villageois",
+    "🧙‍♀️": "Sorcière",
+    "💘": "Cupidon",
+    "🏹": "Chasseur",
+}
+INCREASE = "➕"
+DECREASE = "➖"
+VALIDATE = "✅"
+EMOJI_TO_ROLE = {v['emoji']: role for role, v in config.ROLES_CONFIG.items()}
+
+temp_config = {"message": None, "user": None}
+
+@app_commands.command(name="config", description="Configurer les rôles de la partie avant de commencer.")
+async def config_command(interaction: discord.Interaction):
+    await start_config(interaction)
+
+async def start_config(interaction):
+    temp_config["user"] = interaction.user
+    embed = build_config_embed()
+    msg = await interaction.channel.send(embed=embed)
+    temp_config["message"] = msg
+
+    for emoji in ROLE_EMOJIS:
+        await msg.add_reaction(emoji)
+    await msg.add_reaction(INCREASE)
+    await msg.add_reaction(DECREASE)
+    await msg.add_reaction(VALIDATE)
+
+    await interaction.response.send_message("🛠 Configuration en cours...", ephemeral=True)
+
+def build_config_embed():
+    lines = []
+    for role, data in config.ROLES_CONFIG.items():
+        emoji = data['emoji']
+        qty = data['quantity']
+        lines.append(f"{emoji} **{role}** : {qty}")
+    return create_embed("⚙️ Configuration des rôles", "\n".join(lines))
 
 async def start_game(interaction):
     state.join_users.clear()
@@ -95,8 +136,6 @@ async def run_game(interaction):
     await interaction.channel.send(embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"))
     await night_phase(interaction)
 
-    
-
 async def night_phase(ctx):
     state.current_phase = 'night'
     await mute_voice_channel()
@@ -109,9 +148,7 @@ async def night_phase(ctx):
 async def cupidon_phase(ctx):
     state.current_phase = 'cupidon'
     if state.cupidon and state.cupidon not in state.dead_players:
-        await state.cupidon_channel.send(embed=create_embed(
-            "💘 Cupidon", "Cupidon s’éveille sous les étoiles. Utilisez `!cupidon @joueur1 @joueur2`."
-        ))
+        await state.cupidon_channel.send(embed=create_embed("💘 Cupidon", "Cupidon s’éveille sous les étoiles. Utilisez `!cupidon @joueur1 @joueur2`."))
         for _ in range(45):
             await asyncio.sleep(2)
             if len(state.amoureux_pair) == 2:
@@ -216,7 +253,7 @@ async def remove_player(ctx, player):
                 await remove_player(ctx, autre)
 
     if role == 'Chasseur':
-        await ctx.send(embed=create_embed("🏹 Chasseur", f"{player.display_name}, utilisez `!tirer @joueur` pour venger votre mort."))
+        await ctx.send(embed=create_embed("🌽 Chasseur", f"{player.display_name}, utilisez `!tirer @joueur` pour venger votre mort."))
         state.tir_cible = player
 
 async def check_game_end(ctx):
@@ -232,4 +269,4 @@ async def check_game_end(ctx):
 
 async def end_game(ctx):
     state.game_active = False
-    await ctx.send(embed=create_embed("🏁 Fin", "La partie est terminée. Merci d'avoir joué !"))
+    await ctx.send(embed=create_embed("🏋️ Fin", "La partie est terminée. Merci d'avoir joué !"))
