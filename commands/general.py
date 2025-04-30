@@ -11,7 +11,6 @@ class General(commands.Cog):
 
     @app_commands.command(name="start", description="Démarre la partie")
     async def start(self, interaction: discord.Interaction):
-        await interaction.response.defer()
         await game.start_game(interaction)
 
     @app_commands.command(name="lock", description="Verrouille les inscriptions")
