@@ -17,8 +17,37 @@ ROLE_LORE = {
 }
 
 async def start_game(interaction):
-    await interaction.response.defer()
+    state.join_users.clear()
+    state.join_locked = False
+    message = await interaction.channel.send(embed=create_embed("📝 Inscriptions", "Réagissez avec ✅ pour rejoindre la partie ! Vous avez 60 secondes."))
+    state.join_message = message
+    await message.add_reaction("✅")
 
+    def check(reaction, user):
+        return reaction.message.id == message.id and str(reaction.emoji) == "✅" and not user.bot
+
+    try:
+        while not state.join_locked:
+            reaction, user = await interaction.client.wait_for("reaction_add", timeout=60.0, check=check)
+            if user not in state.join_users:
+                state.join_users.append(user)
+    except asyncio.TimeoutError:
+        pass
+
+    if not state.join_locked:
+        state.join_locked = True
+
+    await run_game(interaction)
+
+async def lock_game(interaction):
+    if not state.join_locked:
+        state.join_locked = True
+        await interaction.response.send_message("🔒 Inscriptions verrouillées. La partie démarre !")
+        await run_game(interaction)
+    else:
+        await interaction.response.send_message("Les inscriptions sont déjà verrouillées.", ephemeral=True)
+
+async def run_game(interaction):
     state.game_active = True
     state.votes.clear()
     state.wolf_votes.clear()
@@ -64,8 +93,8 @@ async def start_game(interaction):
 
     await init_channels(interaction.guild)
     await interaction.channel.send(embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"))
-    await interaction.followup.send("🎮 La partie a bien démarré !")
     await night_phase(interaction)
+
     
 
 async def night_phase(ctx):
