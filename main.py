@@ -33,8 +33,14 @@ async def bot_main():
     await bot.load_extension("commands.general")
     await bot.load_extension("commands.vote")
     await bot.load_extension("commands.roles")
-    await bot.start(BOT_TOKEN)  # NE se termine jamais tant que le bot tourne
+    try:
+        await bot.start(BOT_TOKEN)
+    except Exception as e:
+        print(f"❌ Le bot a crashé : {e}")
+        import time
+        while True:
+            time.sleep(60)  # boucle infinie de secours
 
 if __name__ == "__main__":
     keep_alive()
-    asyncio.run(bot_main())  # Pas de "async with bot:"
+    asyncio.run(bot_main())
