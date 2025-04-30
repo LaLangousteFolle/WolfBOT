@@ -34,6 +34,7 @@ async def bot_main():
     await bot.load_extension("commands.vote")
     await bot.load_extension("commands.roles")
     try:
+        print("🔐 TOKEN =", BOT_TOKEN)
         await bot.start(BOT_TOKEN)
     except Exception as e:
         print(f"❌ Le bot a crashé : {e}")
