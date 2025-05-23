@@ -25,6 +25,7 @@ witch_channel = None
 voice_channel = None
 cupidon_channel = None
 amoureux_channel = None
+corbeau_channel = None
 
 # Action's gestion
 witch_heal_used = False
@@ -40,4 +41,4 @@ join_users = []
 
 # Locks
 vote_lock = None
-tir_cible = None  # Cible du Chasseur après sa mort
+tir_cible = None  # Hunter's target after his death
