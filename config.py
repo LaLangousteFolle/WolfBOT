@@ -1,26 +1,24 @@
 # config.py
 import os
 
-# IDs de tes salons
-log_channel_id = 1366109644707070032
-wolf_channel_id = 1365955043215278111
-seer_channel_id = 1366063228240789584
-witch_channel_id = 1366063263996973077
-voice_channel_id = 1366017756171866203
-cupidon_channel_id = 1366699130071547955
-amoureux_channel_id = 1366699189941305354
+# Chanel IDs
+log_channel_id = 1366109644707070032  # put your log channel id
+wolf_channel_id = 1365955043215278111  # put your wolf channel id
+seer_channel_id = 1366063228240789584  # put your seer channel id
+witch_channel_id = 1366063263996973077  # put your witch channel id
+voice_channel_id = 1366017756171866203  # put your voice channel id
+cupidon_channel_id = 1366699130071547955  # put your cupidon channel id
+amoureux_channel_id = 1366699189941305354  # put your lovers channel id
 
-# Configuration des rôles
+# Roles config
 ROLES_CONFIG = {
-    'Loup-Garou': {'quantity': 0, 'team': 'mal', 'emoji': '🐺'},
-    'Voyante': {'quantity': 0, 'team': 'bon', 'emoji': '🔮'},
-    'Villageois': {'quantity': 0, 'team': 'bon', 'emoji': '👨‍🌾'},
-    'Sorcière': {'quantity': 0, 'team': 'bon', 'emoji': '🧙‍♀️'},
-    'Cupidon': {'quantity': 1, 'team': 'bon', 'emoji': '💘'},
-    'Chasseur': {'quantity': 0, 'team': 'bon', 'emoji': '🏹'}
+    "Loup-Garou": {"quantity": 0, "team": "mal", "emoji": "🐺"},
+    "Voyante": {"quantity": 0, "team": "bon", "emoji": "🔮"},
+    "Villageois": {"quantity": 0, "team": "bon", "emoji": "👨‍🌾"},
+    "Sorcière": {"quantity": 0, "team": "bon", "emoji": "🧙‍♀️"},
+    "Cupidon": {"quantity": 0, "team": "bon", "emoji": "💘"},
+    "Chasseur": {"quantity": 0, "team": "bon", "emoji": "🏹"},
+    "Corbeau": {"quantity": 0, "team": "bon", "emoji": "🪶"},
 }
 
-PHASE_TIMEOUTS = {
-    'role_action': 90,
-    'day': 180
-}
+PHASE_TIMEOUTS = {"role_action": 90, "day": 180}

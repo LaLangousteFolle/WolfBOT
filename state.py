@@ -1,6 +1,6 @@
 # state.py
 
-# Variables d'état du jeu
+# Game state variable
 game_active = False
 players = {}
 votes = {}
@@ -8,14 +8,16 @@ wolf_votes = {}
 dead_players = set()
 current_phase = None
 
-# Rôles spéciaux
+# Special roles
 voyante = None
 sorciere = None
 cupidon = None
 chasseur = None
-amoureux_pair = []  # Deux amoureux ici
+amoureux_pair = []  # Two lovers there
+corbeau = None
+corbeau_target = None
 
-# Channel spéciaux
+# Special channels
 log_channel = None
 wolf_channel = None
 seer_channel = None
@@ -24,7 +26,7 @@ voice_channel = None
 cupidon_channel = None
 amoureux_channel = None
 
-# Gestion actions
+# Action's gestion
 witch_heal_used = False
 witch_kill_used = False
 vision_used = False

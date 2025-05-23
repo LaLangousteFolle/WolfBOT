@@ -20,6 +20,7 @@ ROLE_LORE = {
     "Sorcière": "Tu concoctes tes potions dans l’ombre. Deux fioles : une pour guérir, l’autre pour tuer...",
     "Cupidon": "Tu bandes ton arc sous les étoiles. Deux cœurs vont s’unir dans l’amour, ou la tragédie...",
     "Chasseur": "Ton doigt est sur la gâchette. Si tu tombes, tu ne partiras pas seul...",
+    "Corbeau": "Tu observes dans l'ombre. Chaque nuit, tu peux marquer un joueur qui subira un malus au vote du jour...",
 }
 
 ROLE_EMOJIS = {
@@ -29,6 +30,7 @@ ROLE_EMOJIS = {
     "🧙‍♀️": "Sorcière",
     "💘": "Cupidon",
     "🏹": "Chasseur",
+    "🪶": "Corbeau",
 }
 INCREASE = "➕"
 DECREASE = "➖"
@@ -169,6 +171,8 @@ async def run_game(interaction):
             state.cupidon = member
         if role == "Chasseur":
             state.chasseur = member
+        if role == "Corbeau":
+            state.corbeau = member
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for member, result in zip(state.join_users, results):
@@ -270,6 +274,17 @@ async def sorciere_phase(ctx):
                 break
 
 
+async def corbeau_phase(ctx):
+    if state.corbeau and state.corbeau not in state.dead_players:
+        await state.log_channel.send(
+            embed=create_embed(
+                "🪶 Corbeau",
+                f"{state.corbeau.mention}, utilisez `/marquer @joueur` pour ajouter un malus de votes.",
+            )
+        )
+        await asyncio.sleep(config.PHASE_TIMEOUTS["role_action"])
+
+
 async def resolve_night(ctx):
     await unmute_voice_channel()
     deaths = []
@@ -323,6 +338,12 @@ async def day_phase(ctx):
     reaction_counts = {
         vote_map[r.emoji]: r.count - 1 for r in msg.reactions if r.emoji in vote_map
     }
+
+    if state.corbeau_target in reaction_counts:
+        reaction_counts[state.corbeau_target] -= 2
+        if reaction_counts[state.corbeau_target] < 0:
+            reaction_counts[state.corbeau_target] = 0
+    state.corbeau_target = None  # reset every day
 
     if reaction_counts:
         max_votes = max(reaction_counts.values())
