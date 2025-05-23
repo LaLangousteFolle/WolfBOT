@@ -200,6 +200,7 @@ async def run_game(interaction):
 async def night_phase(ctx):
     state.current_phase = "night"
     await mute_voice_channel()
+    await corbeau_phase(ctx)
     await cupidon_phase(ctx)
     await voyante_phase(ctx)
     await loups_phase(ctx)
@@ -319,8 +320,13 @@ async def day_phase(ctx):
     desc = "\n".join(
         f"{emoji} : {player.display_name}" for emoji, player in vote_map.items()
     )
+
+    malus_info = (
+        "\n\n⚠️ Un joueur a été marqué cette nuit..." if state.corbeau_target else ""
+    )
     embed = create_embed(
-        "📩 Vote anonyme", "Réagissez ci-dessous pour voter anonymement :\n\n" + desc
+        "📩 Vote anonyme",
+        "Réagissez ci-dessous pour voter anonymement :\n\n" + desc + malus_info,
     )
 
     vote_msg = await ctx.send(embed=embed)

@@ -140,10 +140,6 @@ class Roles(commands.Cog):
         state.tir_cible = None
 
 
-async def setup(bot):
-    await bot.add_cog(Roles(bot))
-
-
 @app_commands.command(
     name="marquer",
     description="(Corbeau) Marquez un joueur pour lui infliger un malus de votes.",
@@ -162,3 +158,7 @@ async def marquer(self, interaction: discord.Interaction, joueur: discord.Member
     await interaction.response.send_message(
         f"🪶 Vous avez marqué {joueur.display_name}. Il recevra un malus au prochain vote."
     )
+
+
+async def setup(bot):
+    await bot.add_cog(Roles(bot))
