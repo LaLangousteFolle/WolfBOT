@@ -5,7 +5,8 @@ from discord import app_commands
 from discord.ext import commands
 import state
 import game
-from utils import create_embed
+import utils
+from utils import *
 
 
 class Roles(commands.Cog):
@@ -108,12 +109,19 @@ class Roles(commands.Cog):
 
         state.amoureux_pair = [joueur1, joueur2]
 
-        await state.amoureux_channel.set_permissions(
-            joueur1, read_messages=True, send_messages=True, add_reactions=True
-        )
-        await state.amoureux_channel.set_permissions(
-            joueur2, read_messages=True, send_messages=True, add_reactions=True
-        )
+        try:
+            if state.amoureux_channel:
+                try:
+                    await state.amoureux_channel.set_permissions(
+                        joueur1, read_messages=True, send_messages=True, add_reactions=True
+                    )
+                    await state.amoureux_channel.set_permissions(
+                        joueur2, read_messages=True, send_messages=True, add_reactions=True
+                    )
+                except Exception as e:
+                    print(f"Erreur lors de la définition des permissions: {e}")
+        except Exception as e:
+            print(f"Erreur lors de la configuration des permissions des amoureux: {e}")
 
         await interaction.response.send_message(
             f"💘 {joueur1.display_name} et {joueur2.display_name} sont désormais liés pour la vie !"
@@ -139,25 +147,48 @@ class Roles(commands.Cog):
         await game.remove_player(interaction.channel, joueur)
         state.tir_cible = None
 
-
-@app_commands.command(
-    name="marquer",
-    description="(Corbeau) Marquez un joueur pour lui infliger un malus de votes.",
-)
-async def marquer(self, interaction: discord.Interaction, joueur: discord.Member):
-    if interaction.user != state.corbeau or state.current_phase != "night":
-        await interaction.response.send_message(
-            "Vous ne pouvez pas utiliser cette commande maintenant.", ephemeral=True
-        )
-        return
-    if joueur not in state.players or joueur in state.dead_players:
-        await interaction.response.send_message("Cible invalide.", ephemeral=True)
-        return
-
-    state.corbeau_target = joueur
-    await interaction.response.send_message(
-        f"🪶 Vous avez marqué {joueur.display_name}. Il recevra un malus au prochain vote."
+    @app_commands.command(
+        name="marquer",
+        description="(Corbeau) Marquez un joueur pour lui infliger un malus de votes.",
     )
+    async def marquer(self, interaction: discord.Interaction, joueur: discord.Member):
+        if interaction.user != state.corbeau or state.current_phase != "night":
+            await interaction.response.send_message(
+                "Vous ne pouvez pas utiliser cette commande maintenant.", ephemeral=True
+            )
+            return
+        if joueur not in state.players or joueur in state.dead_players:
+            await interaction.response.send_message("Cible invalide.", ephemeral=True)
+            return
+
+        state.corbeau_target = joueur
+        await interaction.response.send_message(
+            f"🪶 Vous avez marqué {joueur.display_name}. Il recevra un malus au prochain vote."
+        )
+
+    @app_commands.command(
+        name="proteger", description="(Garde) Protégez un joueur pendant la nuit."
+    )
+    async def proteger(self, interaction: discord.Interaction, joueur: discord.Member):
+        if interaction.user != state.garde or state.current_phase != "night":
+            await interaction.response.send_message(
+                "Vous ne pouvez pas utiliser cette commande maintenant.", ephemeral=True
+            )
+            return
+        if joueur == state.last_protected:
+            await interaction.response.send_message(
+                "⛔ Vous ne pouvez pas protéger deux fois de suite la même personne.",
+                ephemeral=True,
+            )
+            return
+        if joueur not in state.players or joueur in state.dead_players:
+            await interaction.response.send_message("Cible invalide.", ephemeral=True)
+            return
+
+        state.protected_tonight = joueur
+        await interaction.response.send_message(
+            f"🛡️ Vous avez choisi de protéger {joueur.display_name} cette nuit."
+        )
 
 
 async def setup(bot):
