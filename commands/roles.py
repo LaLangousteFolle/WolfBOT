@@ -144,7 +144,7 @@ class Roles(commands.Cog):
         await interaction.response.send_message(
             f"🏹 Vous avez tué {joueur.display_name} avant de mourir !"
         )
-        await game.remove_player(interaction.channel, joueur)
+        await game.remove_player(interaction, joueur)
         state.tir_cible = None
 
     @app_commands.command(

@@ -36,6 +36,10 @@ temp_config = {"message": None, "user": None}
 async def config_command(interaction: discord.Interaction):
     await start_config(interaction)
 
+async def reset_roles_config():
+    for role_data in config.ROLES_CONFIG.values():
+        role_data["quantity"] = 0
+
 
 async def start_config(interaction):
     try:
@@ -107,9 +111,10 @@ async def lock_game(interaction):
     try:
         if not state.join_locked:
             state.join_locked = True
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "🔒 Inscriptions verrouillées. La partie démarre !"
             )
+
             await run_game(interaction)
         else:
             await interaction.response.send_message(
@@ -528,6 +533,7 @@ async def check_game_end(ctx):
 
 
 async def end_game(ctx):
+    reset_roles_config()
     try:
         state.game_active = False
         await ctx.send(

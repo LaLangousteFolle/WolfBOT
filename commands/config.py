@@ -13,47 +13,39 @@ class Config(commands.Cog):
         self.bot = bot
         self.config_data = {}
 
-    @app_commands.command(
-        name="config",
-        description="Configurer les rôles de la partie avant de commencer.",
-    )
+    @app_commands.command(name="config", description="Configurer les rôles via saisie utilisateur.")
     async def config_command(self, interaction: discord.Interaction):
-        try:
-            # Stockage des données de configuration temporaires
-            self.config_data = {
-                "user": interaction.user,
-                "message": None
-            }
-            
-            # Création de l'embed de configuration
-            embed = self.build_config_embed()
-            
-            # Envoi du message de configuration
-            if hasattr(interaction, 'channel') and interaction.channel and hasattr(interaction.channel, 'send'):
-                msg = await interaction.channel.send(embed=embed)
-                self.config_data["message"] = msg
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user = interaction.user
 
-                # Ajout des réactions
-                for emoji in ROLE_EMOJIS:
-                    await msg.add_reaction(emoji)
-                await msg.add_reaction(INCREASE)
-                await msg.add_reaction(DECREASE)
-                await msg.add_reaction(VALIDATE)
+        def check(m):
+            return m.author == user and m.channel == interaction.channel
 
-                # Confirmation à l'utilisateur
-                await interaction.response.send_message(
-                    "🛠 Configuration en cours...", ephemeral=True
-                )
-            else:
-                await interaction.response.send_message(
-                    "❌ Erreur: Impossible d'accéder au canal", ephemeral=True
-                )
-        except Exception as e:
-            print(f"Erreur lors de la configuration: {e}")
-            await interaction.response.send_message(
-                "❌ Une erreur s'est produite lors de la configuration.", ephemeral=True
+        for role, data in config.ROLES_CONFIG.items():
+            await interaction.followup.send(
+                f"Combien de **{role}** {data['emoji']} ? (réponds par un nombre entier)"
             )
+            try:
+                msg = await self.bot.wait_for("message", timeout=60.0, check=check)
+                quantity = int(msg.content)
+                config.ROLES_CONFIG[role]["quantity"] = max(0, quantity)
+            except (discord.errors.NotFound, ValueError, TimeoutError):
+                await interaction.followup.send(f"⏱️ Entrée invalide. Valeur par défaut : 0 pour {role}")
+                config.ROLES_CONFIG[role]["quantity"] = 0
 
+        await interaction.followup.send("✅ Configuration terminée. Tu peux lancer la partie avec `/start`.")
+
+        summary = "\n".join(
+            f"{data['emoji']} **{role}** : {data['quantity']}"
+            for role, data in config.ROLES_CONFIG.items()
+        )
+        await interaction.followup.send(
+            embed=discord.Embed(
+                title="📋 Configuration actuelle",
+                description=summary,
+                color=0x00ffcc
+            )
+        )
     def build_config_embed(self):
         lines = []
         for role, data in config.ROLES_CONFIG.items():
@@ -67,7 +59,7 @@ class Config(commands.Cog):
         # Ignorer les réactions des bots
         if user.bot:
             return
-            
+
         # Vérifier si c'est une réaction sur notre message de configuration
         if not self.config_data.get("message"):
             return
@@ -95,13 +87,13 @@ class Config(commands.Cog):
             message = self.config_data.get("message")
             if not message or not message.embeds:
                 return
-                
+
             description = message.embeds[0].description
             if not description:
                 return
-                
+
             lines = description.split("\n")
-            
+
             # Traitement des modifications de quantité
             for line in lines:
                 for emoji, role_name in ROLE_EMOJIS.items():
