@@ -2,23 +2,39 @@ import os
 import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from core.game_engine import GameEngine
 
-engine = GameEngine()
+# Chargement des variables d'environnement
 load_dotenv()
 
+# Initialisation de FastAPI
 app = FastAPI()
 
+# Ajoute le moteur de jeu
+engine = GameEngine()
+
+# CORS : autorise l'origine de ton front (Next.js)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # à adapter si tu déploies
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Variables d'environnement
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
+REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")  # Doit pointer vers /callback
+FRONTEND_REDIRECT_URI = os.getenv("FRONTEND_REDIRECT_URI", "http://localhost:3000/dashboard")
 
 
 @app.get("/login")
 async def login():
     discord_auth_url = (
-        f"https://discord.com/api/oauth2/authorize"
+        "https://discord.com/api/oauth2/authorize"
         f"?client_id={CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}"
         f"&response_type=code"
@@ -31,9 +47,9 @@ async def login():
 async def callback(request: Request):
     code = request.query_params.get("code")
     if not code:
-        return HTMLResponse("<h1>Erreur: Pas de code OAuth2</h1>")
+        return HTMLResponse("<h1>Erreur: Pas de code OAuth2</h1>", status_code=400)
 
-    # Échange code contre token
+    # Échange du code contre un token
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
@@ -45,24 +61,31 @@ async def callback(request: Request):
 
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-    r = requests.post(
+    token_response = requests.post(
         "https://discord.com/api/oauth2/token", data=data, headers=headers
     )
-    r.raise_for_status()
-    tokens = r.json()
+
+    if token_response.status_code != 200:
+        return HTMLResponse("<h1>Erreur: Token invalide</h1>", status_code=400)
+
+    tokens = token_response.json()
     access_token = tokens["access_token"]
 
-    # Récup info utilisateur
-    headers = {"Authorization": f"Bearer {access_token}"}
-    user_resp = requests.get("https://discord.com/api/users/@me", headers=headers)
-    user_data = user_resp.json()
+    # Récupération des infos utilisateur
+    user_headers = {"Authorization": f"Bearer {access_token}"}
+    user_resp = requests.get("https://discord.com/api/users/@me", headers=user_headers)
 
-    # ➕ Ici tu ajoutes le joueur dans ton moteur de jeu
+    if user_resp.status_code != 200:
+        return HTMLResponse("<h1>Erreur: Impossible de récupérer les infos utilisateur</h1>", status_code=400)
+
+    user_data = user_resp.json()
     user_id = user_data["id"]
     username = user_data["username"]
-    avatar = f"https://cdn.discordapp.com/avatars/{user_id}/{user_data['avatar']}.png"
+    avatar = user_data.get("avatar")
 
-    # → Tu peux maintenant appeler game_engine.add_player(...)
-    return HTMLResponse(
-        f"<h1>Bienvenue {username}!</h1><img src='{avatar}' width='128' />"
-    )
+    # Ajout du joueur dans le moteur de jeu
+    engine.add_player(user_id, username, avatar)
+
+    # Redirection vers le front avec les infos utilisateur
+    redirect_url = f"{FRONTEND_REDIRECT_URI}?username={username}&id={user_id}"
+    return RedirectResponse(url=redirect_url)

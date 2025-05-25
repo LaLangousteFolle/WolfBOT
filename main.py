@@ -2,7 +2,6 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from keep_alive import keep_alive
 import asyncio
 
 # Charger les variables d'environnement
@@ -61,8 +60,6 @@ async def bot_main():
             time.sleep(60)
 
 if __name__ == "__main__":
-    # Démarrage du serveur web pour garder le bot en vie
-    keep_alive()
     
     # Démarrage du bot avec gestion d'erreurs
     try:
