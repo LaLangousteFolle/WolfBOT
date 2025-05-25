@@ -67,6 +67,10 @@ def build_config_embed():
 
 
 async def start_game(interaction):
+    await interaction.channel.send(
+        "🖥️ Rejoignez la partie ici : [Cliquez pour rejoindre](http://localhost:8000/login)"
+    )
+
     try:
         state.join_users.clear()
         state.join_locked = False
@@ -202,7 +206,9 @@ async def run_game(interaction):
 
         await init_channels(interaction.guild)
         await interaction.channel.send(
-            embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !")
+            embed=create_embed(
+                "🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"
+            )
         )
         await night_phase(interaction.channel)
     except Exception as e:
@@ -228,7 +234,11 @@ async def night_phase(ctx):
 async def cupidon_phase(ctx):
     try:
         state.current_phase = "cupidon"
-        if state.cupidon and state.cupidon not in state.dead_players and state.cupidon_channel:
+        if (
+            state.cupidon
+            and state.cupidon not in state.dead_players
+            and state.cupidon_channel
+        ):
             await state.cupidon_channel.send(
                 embed=create_embed(
                     "💘 Cupidon",
@@ -254,7 +264,11 @@ async def cupidon_phase(ctx):
 
 async def garde_phase(ctx):
     try:
-        if state.garde and state.garde not in state.dead_players and state.garde_channel:
+        if (
+            state.garde
+            and state.garde not in state.dead_players
+            and state.garde_channel
+        ):
             await state.garde_channel.send(
                 embed=create_embed(
                     "🛡️ Garde",
@@ -279,7 +293,11 @@ async def garde_phase(ctx):
 
 async def voyante_phase(ctx):
     try:
-        if state.voyante and state.voyante not in state.dead_players and state.seer_channel:
+        if (
+            state.voyante
+            and state.voyante not in state.dead_players
+            and state.seer_channel
+        ):
             try:
                 await state.seer_channel.send(
                     f"{state.voyante.mention}, utilisez `!voir_role @joueur`."
@@ -317,7 +335,11 @@ async def loups_phase(ctx):
 
 async def sorciere_phase(ctx):
     try:
-        if state.sorciere and state.sorciere not in state.dead_players and state.witch_channel:
+        if (
+            state.sorciere
+            and state.sorciere not in state.dead_players
+            and state.witch_channel
+        ):
             try:
                 if state.victim_of_wolves and not state.witch_heal_used:
                     await state.witch_channel.send(
@@ -347,7 +369,11 @@ async def sorciere_phase(ctx):
 
 async def corbeau_phase(ctx):
     try:
-        if state.corbeau and state.corbeau not in state.dead_players and state.log_channel:
+        if (
+            state.corbeau
+            and state.corbeau not in state.dead_players
+            and state.log_channel
+        ):
             try:
                 await state.log_channel.send(
                     embed=create_embed(
@@ -388,7 +414,9 @@ async def resolve_night(ctx):
                 )
             )
         else:
-            await ctx.send(embed=create_embed("🌞 Matin calme", "La nuit fut paisible."))
+            await ctx.send(
+                embed=create_embed("🌞 Matin calme", "La nuit fut paisible.")
+            )
 
         state.last_protected = state.protected_tonight
         state.protected_tonight = None
@@ -441,10 +469,14 @@ async def day_phase(ctx):
 
         if reaction_counts:
             max_votes = max(reaction_counts.values())
-            candidates = [p for p, count in reaction_counts.items() if count == max_votes]
+            candidates = [
+                p for p, count in reaction_counts.items() if count == max_votes
+            ]
             eliminated = random.choice(candidates)
             await ctx.send(
-                embed=create_embed("⚖️ Verdict", f"{eliminated.display_name} a été éliminé.")
+                embed=create_embed(
+                    "⚖️ Verdict", f"{eliminated.display_name} a été éliminé."
+                )
             )
             await remove_player(ctx, eliminated)
         else:
@@ -468,7 +500,9 @@ async def remove_player(ctx, player):
         await remove_channel_permissions(player)
         try:
             await ctx.send(
-                embed=create_embed("✝️ Révélation", f"{player.display_name} était **{role}**.")
+                embed=create_embed(
+                    "✝️ Révélation", f"{player.display_name} était **{role}**."
+                )
             )
         except Exception as e:
             print(f"Erreur lors de la révélation du rôle: {e}")
@@ -504,7 +538,11 @@ async def remove_player(ctx, player):
 
 async def check_game_end(ctx):
     try:
-        roles_alive = [role for player, role in state.players.items() if player not in state.dead_players]
+        roles_alive = [
+            role
+            for player, role in state.players.items()
+            if player not in state.dead_players
+        ]
         if not roles_alive:
             await ctx.send(
                 embed=create_embed("🏆 Fin de partie", "Tous les joueurs sont morts !")
