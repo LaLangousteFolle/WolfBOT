@@ -3,7 +3,9 @@ import requests
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from dotenv import load_dotenv
+from core.game_engine import GameEngine
 
+engine = GameEngine()
 load_dotenv()
 
 app = FastAPI()
