@@ -83,9 +83,20 @@ async def callback(request: Request):
     username = user_data["username"]
     avatar = user_data.get("avatar")
 
+    avatar_url = (
+    f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png"
+    if avatar else "https://cdn.discordapp.com/embed/avatars/0.png"
+)
+
     # Ajout du joueur dans le moteur de jeu
     engine.add_player(user_id, username, avatar)
 
-    # Redirection vers le front avec les infos utilisateur
-    redirect_url = f"{FRONTEND_REDIRECT_URI}?username={username}&id={user_id}"
+    # Rediriger avec avatar_url (URL-encodée si besoin)
+    from urllib.parse import urlencode
+    params = urlencode({
+        "username": username,
+        "id": user_id,
+        "avatar": avatar_url
+    })
+    redirect_url = f"{FRONTEND_REDIRECT_URI}?{params}"
     return RedirectResponse(url=redirect_url)
