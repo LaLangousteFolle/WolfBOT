@@ -1,7 +1,11 @@
 # backend/models.py
 
 from pydantic import BaseModel
-from typing import List
+from typing import *
+
+
+class RoleConfigRequest(BaseModel):
+    config: Dict[str, int]
 
 
 class JoinRequest(BaseModel):
