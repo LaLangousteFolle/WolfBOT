@@ -1,7 +1,9 @@
 # backend/api/lobby.py
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
 from backend.state import lobby, connections
+from backend.models import JoinRequest
+from fastapi.responses import JSONResponse
+from backend.models import LobbyState
 import json
 
 router = APIRouter()
@@ -21,18 +23,22 @@ async def start_lobby():
     return {"message": "Lobby started"}
 
 
+@router.get("/lobby", response_model=LobbyState)
+def get_lobby():
+    return LobbyState(players=lobby["players"], phase=lobby["phase"])
+
+
 @router.post("/lobby/join")
-async def join_lobby(request: Request):
-    data = await request.json()
-    name = data.get("name")
+async def join_lobby(req: JoinRequest):
+    name = req.name
 
     if name and name not in lobby["players"]:
         lobby["players"].append(name)
 
-        # Notifie tous les clients WebSocket
         for ws in connections:
             await ws.send_text(
                 json.dumps({"type": "join", "name": name, "players": lobby["players"]})
             )
         return {"message": f"{name} joined"}
-    return JSONResponse(status_code=400, content={"error": "Nom invalide ou déjà pris"})
+
+    return {"error": "Nom invalide ou déjà pris"}
