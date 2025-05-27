@@ -11,7 +11,9 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-4">Bienvenue, {username} !</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        Bienvenue sur WolfBot, {username} !
+      </h1>
 
       {avatar && (
         <Image
