@@ -2,17 +2,16 @@ import jwt
 
 SECRET_KEY = "votre_clé_ultra_secrète"
 
-def generate_token(discord_id, username, avatar_url, game_id):
+def generate_token(discord_id, username, avatar_url):
     payload = {
         "discord_id": discord_id,
         "username": username,
         "avatar": avatar_url,
-        "game_id": game_id,
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
-test = generate_token('0000','test#1811', 'https://cdn.pixabay.com/photo/2017/06/13/12/54/profile-2398783_1280.png', 'abc123')
+test = generate_token('123456','TEST#018', 'https://www.unapaf.fr/webcontenu/uploads/2018/10/Renard.jpg')
 
 print('token', test)
 
