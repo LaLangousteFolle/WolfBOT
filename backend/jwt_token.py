@@ -11,10 +11,14 @@ def generate_token(discord_id, username, avatar_url):
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
-test = generate_token('123456','TEST#018', 'https://www.unapaf.fr/webcontenu/uploads/2018/10/Renard.jpg')
+Val = generate_token('123456789','Val#1811', 'https://b1157417.smushcdn.com/1157417/wp-content/uploads/fish-discus-swimming-825x550.jpg')
+Nono = generate_token('165748269','Nono#666', 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Loup_gris_%28Canis_lupus_%29.jpg/250px-Loup_gris_%28Canis_lupus_%29.jpg')
 
-print('token', test)
+print('token', Val)
+print('token', Nono)
 
-test_decoded = jwt.decode(test, SECRET_KEY, algorithms=["HS256"])
+Val_decoded = jwt.decode(Val, SECRET_KEY, algorithms=["HS256"])
+Nono_decoded = jwt.decode(Nono, SECRET_KEY, algorithms=["HS256"])
 
-print('decoded token: ', test_decoded)
+print('Val decoded: ', Val_decoded)
+print('Nono decoded: ', Nono_decoded)

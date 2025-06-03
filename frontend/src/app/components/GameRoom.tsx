@@ -28,7 +28,7 @@ export default function GameRoom() {
     setPlayers([player]);
 
     const socket = new WebSocket(
-      `ws://localhost:8000/ws/game?token=${paramToken}`
+      `ws://${window.location.hostname}:8000/ws/game?token=${paramToken}`
     );
 
     socket.onopen = () => console.log("Connecté WS");
