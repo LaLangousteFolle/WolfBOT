@@ -1,7 +1,7 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 
 export default function WaitingRoom({ players }) {
-  console.log(players);
+  console.log(players.length);
   return (
     <>
       <h1>Waiting Room</h1>
@@ -29,6 +29,9 @@ export default function WaitingRoom({ players }) {
           </div>
         ))}
       </ul>
+      <div>
+        <p>Nombre de joueurs : {players.length}</p>
+      </div>
     </>
   );
 }
