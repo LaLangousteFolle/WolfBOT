@@ -13,6 +13,7 @@ export default function GameRoom() {
     username: string;
     avatar: string;
     discord_id: string;
+    isAdmin: boolean;
   };
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -56,7 +57,7 @@ export default function GameRoom() {
   return (
     <>
       <Account player={player} />
-      <AdminRoom />
+      {player.isAdmin && <AdminRoom />}
       <RolesRoom />
       <WaitingRoom players={players} />
     </>
