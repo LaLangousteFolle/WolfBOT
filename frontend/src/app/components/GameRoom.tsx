@@ -9,7 +9,14 @@ import WaitingRoom from "./WaitingRoom";
 export default function GameRoom() {
   const searchParams = useSearchParams();
 
-  const [players, setPlayers] = useState([]);
+  type Player = {
+    username: string;
+    avatar: string;
+    discord_id: string;
+  };
+
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [player, setPlayer] = useState<Player | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -19,13 +26,15 @@ export default function GameRoom() {
     setToken(paramToken);
     const decoded = JSON.parse(atob(paramToken.split(".")[1]));
 
-    const player = {
+    const newPlayer = {
       username: decoded.username,
       avatar: decoded.avatar,
       discord_id: decoded.discord_id,
+      isAdmin: decoded.isAdmin,
     };
 
-    setPlayers([player]);
+    setPlayer(newPlayer);
+    setPlayers([newPlayer]);
 
     const socket = new WebSocket(
       `ws://${window.location.hostname}:8000/ws/game?token=${paramToken}`
@@ -42,11 +51,11 @@ export default function GameRoom() {
     return () => socket.close();
   }, [searchParams]);
 
-  if (!token) return <p>Chargement...</p>;
+  if (!token || !player) return <p>Chargement...</p>;
 
   return (
     <>
-      <Account />
+      <Account player={player} />
       <AdminRoom />
       <RolesRoom />
       <WaitingRoom players={players} />

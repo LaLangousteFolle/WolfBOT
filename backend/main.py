@@ -17,11 +17,12 @@ app.add_middleware(
 # Dictionnaire des connexions par joueur
 clients = {}
 
-def generate_token(discord_id, username, avatar_url):
+def generate_token(discord_id, username, avatar_url, isAdmin):
     payload = {
         "discord_id": discord_id,
         "username": username,
         "avatar": avatar_url,
+        "isAdmin": isAdmin,
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
@@ -69,7 +70,8 @@ async def broadcast_players():
         {
             "username": p["username"],
             "discord_id": p["discord_id"],
-            "avatar": p["avatar"]
+            "avatar": p["avatar"],
+            "isAdmin": p["isAdmin"]
         }
         for ws_list in clients.values()
         for _, p in ws_list
