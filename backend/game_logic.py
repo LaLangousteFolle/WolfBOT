@@ -20,3 +20,6 @@ def start_game():
 def reset_game():
     game_state["players"] = []
     game_state["phase"] = "waiting"
+
+
+# à revoir tout ça
