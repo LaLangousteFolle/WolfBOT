@@ -1,83 +1,45 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import jwt
-
-SECRET_KEY = "votre_clé_ultra_secrète"
+from websocket import router as ws_router
+from game_logic import start_game, reset_game
+from game_roles import roles_catalog
+from auth import get_current_user
+from fastapi import Depends, HTTPException
+from game_state import game_state
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En prod : restreindre à ["http://localhost:3000"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dictionnaire des connexions par joueur
-clients = {}
+app.include_router(ws_router)
 
-def generate_token(discord_id, username, avatar_url, isAdmin):
-    payload = {
-        "discord_id": discord_id,
-        "username": username,
-        "avatar": avatar_url,
-        "isAdmin": isAdmin,
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+@app.post("/start")
+async def start_route(current_user: dict = Depends(get_current_user)):
+    if not current_user["isAdmin"]:
+        raise HTTPException(status_code=403)
+    start_game()
+    return {"detail": "Partie lancée"}
 
+@app.get("/my-role")
+async def my_role(current_user: dict = Depends(get_current_user)):
+    for p in game_state["players"]:
+        if p["discord_id"] == current_user["discord_id"]:
+            return {"role": p.get("role", None)}
+    raise HTTPException(status_code=404)
 
-@app.websocket("/ws/game")
-async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
-    key = None
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        key = payload["discord_id"]
+@app.get("/roles")
+async def roles():
+    return roles_catalog
 
-        await websocket.accept()
-        print(f"✅ WebSocket accepté pour {payload['username']} ({key})")
-
-        if key not in clients:
-            clients[key] = []
-
-        clients[key].append((websocket, payload))
-        await broadcast_players()
-
-        while True:
-            data = await websocket.receive_text()
-            print("📩 Message reçu :", data)
-
-    except WebSocketDisconnect:
-        print(f"🔌 Déconnexion WebSocket pour {key}")
-        if key in clients:
-            clients[key] = [
-                (ws, p) for ws, p in clients[key] if ws != websocket
-            ]
-            if not clients[key]:
-                del clients[key]
-            await broadcast_players()
-
-    except jwt.ExpiredSignatureError:
-        await websocket.close(code=4001)
-        print("❌ Token expiré")
-    except Exception as e:
-        print("❌ Erreur WebSocket:", e)
-        await websocket.close(code=4002)
-
-
-async def broadcast_players():
-    all_players = [
-        {
-            "username": p["username"],
-            "discord_id": p["discord_id"],
-            "avatar": p["avatar"],
-            "isAdmin": p["isAdmin"]
-        }
-        for ws_list in clients.values()
-        for _, p in ws_list
-    ]
-    message = {"type": "update_players", "players": all_players}
-
-    for ws_list in clients.values():
-        for ws, _ in ws_list:
-            await ws.send_json(message)
+@app.post("/reset")
+async def reset_route(current_user: dict = Depends(get_current_user)):
+    if not current_user["isAdmin"]:
+        raise HTTPException(status_code=403)
+    reset_game()
+    return {"detail": "Jeu réinitialisé"}
