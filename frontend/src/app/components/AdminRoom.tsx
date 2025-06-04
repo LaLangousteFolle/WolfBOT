@@ -1,10 +1,10 @@
 import RolesConfig from "../admin/RolesConfig";
 
-export default function AdminRoom() {
+export default function AdminRoom({ nbJoueurs }) {
   return (
     <>
       <h1>Settings</h1>
-      <RolesConfig />
+      <RolesConfig nbJoueurs={nbJoueurs} />
     </>
   );
 }

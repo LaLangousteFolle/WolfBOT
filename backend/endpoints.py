@@ -37,9 +37,3 @@ async def my_role(current_user: dict = Depends(get_current_user)):
 async def roles():
     return roles_catalog
 
-@app.post("/reset")
-async def reset_route(current_user: dict = Depends(get_current_user)):
-    if not current_user["isAdmin"]:
-        raise HTTPException(status_code=403)
-    reset_game()
-    return {"detail": "Jeu réinitialisé"}
