@@ -27,4 +27,11 @@ roles_catalog = [
         "type": "village",
         "image": "/roles/villageois.png",
     },
+    {
+        "id": "chasseur",
+        "name": "Chasseur",
+        "description": "Tue quelqu'un avant de mourir.",
+        "type": "village",
+        "image": "/roles/chasseur.png",
+    },
 ]
