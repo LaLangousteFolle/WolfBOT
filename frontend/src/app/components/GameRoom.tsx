@@ -57,7 +57,7 @@ export default function GameRoom() {
   return (
     <>
       <Account player={player} />
-      {player.isAdmin && <AdminRoom />}
+      {player.isAdmin && <AdminRoom nbJoueurs={players.length} />}
       <RolesRoom />
       <WaitingRoom players={players} />
     </>

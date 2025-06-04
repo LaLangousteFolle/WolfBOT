@@ -1,7 +1,4 @@
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
-
 export default function WaitingRoom({ players }) {
-  console.log(players.length);
   return (
     <>
       <h1>Waiting Room</h1>
