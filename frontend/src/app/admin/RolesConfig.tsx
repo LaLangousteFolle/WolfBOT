@@ -6,7 +6,7 @@ export default function RolesConfig({ nbJoueurs }) {
   const [quantities, setQuantities] = useState({});
 
   useEffect(() => {
-    fetch("http://localhost:8000/roles")
+    fetch("fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`)")
       .then((res) => res.json())
       .then((data) => {
         setRoles(data);
