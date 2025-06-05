@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-export default function RolesConfig({ nbJoueurs }: any) {
+export default function RolesConfig({ nbJoueurs }: { nbJoueurs: number }) {
   const [roles, setRoles] = useState([]);
   const [quantities, setQuantities] = useState({});
 
