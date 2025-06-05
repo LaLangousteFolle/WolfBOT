@@ -2,32 +2,39 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+type Role = {
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  image?: string;
+};
+
 export default function RolesConfig({ nbJoueurs }: { nbJoueurs: number }) {
-  const [roles, setRoles] = useState([]);
-  const [quantities, setQuantities] = useState({});
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`)
       .then((res) => res.json())
-      .then((data) => {
+      .then((data: Role[]) => {
         setRoles(data);
-        const initialQuantities = {};
+        const initialQuantities: Record<string, number> = {};
         data.forEach((role) => {
           initialQuantities[role.id] = 0;
         });
         setQuantities(initialQuantities);
-        console.log(data);
       });
   }, []);
 
-  const increment = (id) => {
+  const increment = (id: string) => {
     setQuantities((prev) => ({
       ...prev,
       [id]: prev[id] + 1,
     }));
   };
 
-  const decrement = (id) => {
+  const decrement = (id: string) => {
     setQuantities((prev) => ({
       ...prev,
       [id]: Math.max(0, prev[id] - 1),
