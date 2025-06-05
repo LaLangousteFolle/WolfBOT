@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-export default function RolesConfig({ nbJoueurs }) {
+export default function RolesConfig({ nbJoueurs }: any) {
   const [roles, setRoles] = useState([]);
   const [quantities, setQuantities] = useState({});
 
