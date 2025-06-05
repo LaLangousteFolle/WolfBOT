@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export default function RolesConfig({ nbJoueurs }: any) {
@@ -44,7 +45,7 @@ export default function RolesConfig({ nbJoueurs }: any) {
           >
             <p className="font-semibold text-center mb-2">{role.name}</p>
             <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-300 mb-2">
-              <img
+              <Image
                 src={role.image}
                 alt={role.name}
                 className="w-full h-full object-cover"
