@@ -18,6 +18,7 @@ export default function RolesConfig({ nbJoueurs }: { nbJoueurs: number }) {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("data reçue:", data);
         const rolesData = data as Role[]; // cast explicite
         setRoles(rolesData);
         const initialQuantities: Record<string, number> = {};

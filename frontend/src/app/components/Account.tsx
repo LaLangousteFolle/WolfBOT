@@ -20,6 +20,8 @@ export default function Account({ player }: AccountProps) {
           src={player.avatar}
           alt={`${player.username}'s avatar`}
           className="w-12 h-12 rounded-full"
+          width={80}
+          height={80}
         />
         <div>
           <p className="font-semibold text-lg">{player.username}</p>

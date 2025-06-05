@@ -1,19 +1,8 @@
+from fastapi import APIRouter
 from game_roles import roles_catalog
 
-@app.post("/start")
-async def start_route(current_user: dict = Depends(get_current_user)):
-    if not current_user["isAdmin"]:
-        raise HTTPException(status_code=403)
-    start_game()
-    return {"detail": "Partie lancée"}
+router = APIRouter()
 
-@app.get("/my-role")
-async def my_role(current_user: dict = Depends(get_current_user)):
-    for p in game_state["players"]:
-        if p["discord_id"] == current_user["discord_id"]:
-            return {"role": p.get("role", None)}
-    raise HTTPException(status_code=404)
-
-@app.get("/roles")
+@router.get("/roles")
 async def roles():
     return roles_catalog
