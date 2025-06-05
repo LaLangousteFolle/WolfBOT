@@ -17,10 +17,11 @@ export default function RolesConfig({ nbJoueurs }: { nbJoueurs: number }) {
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`)
       .then((res) => res.json())
-      .then((data: Role[]) => {
-        setRoles(data);
+      .then((data) => {
+        const rolesData = data as Role[]; // cast explicite
+        setRoles(rolesData);
         const initialQuantities: Record<string, number> = {};
-        data.forEach((role) => {
+        rolesData.forEach((role) => {
           initialQuantities[role.id] = 0;
         });
         setQuantities(initialQuantities);
@@ -53,9 +54,11 @@ export default function RolesConfig({ nbJoueurs }: { nbJoueurs: number }) {
             <p className="font-semibold text-center mb-2">{role.name}</p>
             <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-300 mb-2">
               <Image
-                src={role.image}
+                src={role.image ?? "/placeholder.png"}
                 alt={role.name}
                 className="w-full h-full object-cover"
+                width={80}
+                height={80}
               />
             </div>
             <div className="flex items-center gap-2">

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function WaitingRoom({ players }) {
   return (
     <>
@@ -9,7 +11,7 @@ export default function WaitingRoom({ players }) {
             className="p-4 border rounded-md shadow-md bg-white max-w-sm"
           >
             <div className="flex items-center gap-4">
-              <img
+              <Image
                 src={p.avatar}
                 alt={`${p.username}'s avatar`}
                 className="w-12 h-12 rounded-full"
