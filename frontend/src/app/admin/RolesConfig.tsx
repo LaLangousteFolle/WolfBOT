@@ -6,7 +6,7 @@ export default function RolesConfig({ nbJoueurs }: any) {
   const [quantities, setQuantities] = useState({});
 
   useEffect(() => {
-    fetch("fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`)")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/roles`)
       .then((res) => res.json())
       .then((data) => {
         setRoles(data);
@@ -15,6 +15,7 @@ export default function RolesConfig({ nbJoueurs }: any) {
           initialQuantities[role.id] = 0;
         });
         setQuantities(initialQuantities);
+        console.log(data);
       });
   }, []);
 
