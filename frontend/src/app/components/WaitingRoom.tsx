@@ -1,6 +1,17 @@
 import Image from "next/image";
 
-export default function WaitingRoom({ players }) {
+type Player = {
+  username: string;
+  avatar: string;
+  discord_id: string;
+  isAdmin: boolean;
+};
+
+type WaitingRoomProps = {
+  players: Player[];
+};
+
+export default function WaitingRoom({ players }: WaitingRoomProps) {
   return (
     <>
       <h1>Waiting Room</h1>
@@ -14,7 +25,9 @@ export default function WaitingRoom({ players }) {
               <Image
                 src={p.avatar}
                 alt={`${p.username}'s avatar`}
-                className="w-12 h-12 rounded-full"
+                width={48}
+                height={48}
+                className="rounded-full"
               />
               <div>
                 <p className="font-semibold text-lg">{p.username}</p>
