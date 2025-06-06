@@ -37,8 +37,6 @@ export default function GameRoom() {
     setPlayer(newPlayer);
     setPlayers([newPlayer]);
 
-    console.log(process.env.NEXT_PUBLIC_WS_URL);
-
     const socket = new WebSocket(
       `${process.env.NEXT_PUBLIC_WS_URL}?token=${paramToken}`
     );
