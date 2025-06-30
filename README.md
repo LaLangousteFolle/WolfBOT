@@ -33,7 +33,7 @@ Wolfbot est un bot Discord permettant de jouer au jeu des Loups-Garous de Thierc
 1. Clonez le repo :
 
    ```bash
-   git clone https://github.com/votre-utilisateur/Wolfbot.git
+   git clone https://github.com/LaLangousteFolle/WolfBOT.git
    cd Wolfbot
    ```
 
