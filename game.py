@@ -1,16 +1,18 @@
-import discord
 import asyncio
 import random
-import state
-import config
+
+import discord
 from discord import app_commands
-from config import ROLE_EMOJIS, INCREASE, DECREASE, VALIDATE
+
+import config
+from config import DECREASE, INCREASE, ROLE_EMOJIS, VALIDATE
+from game_session import GameSession, get_session
 from utils import (
     create_embed,
-    mute_voice_channel,
-    unmute_voice_channel,
-    remove_channel_permissions,
     init_channels,
+    mute_voice_channel,
+    remove_channel_permissions,
+    unmute_voice_channel,
 )
 
 ROLE_LORE = {
@@ -24,7 +26,6 @@ ROLE_LORE = {
     "Garde": "Tu veilles sur le village. Chaque nuit, tu peux protéger un villageois de l'attaque des loups...",
 }
 
-
 EMOJI_TO_ROLE = {v["emoji"]: role for role, v in config.ROLES_CONFIG.items()}
 
 temp_config = {"message": None, "user": None}
@@ -35,6 +36,7 @@ temp_config = {"message": None, "user": None}
 )
 async def config_command(interaction: discord.Interaction):
     await start_config(interaction)
+
 
 async def reset_roles_config():
     for role_data in config.ROLES_CONFIG.values():
@@ -72,15 +74,16 @@ def build_config_embed():
 
 async def start_game(interaction):
     try:
-        state.join_users.clear()
-        state.join_locked = False
+        session = get_session(interaction.guild)
+        session.join_users.clear()
+        session.join_locked = False
         message = await interaction.channel.send(
             embed=create_embed(
                 "📝 Inscriptions",
                 "Réagissez avec ✅ pour rejoindre la partie ! Vous avez 60 secondes.",
             )
         )
-        state.join_message = message
+        session.join_message = message
         await message.add_reaction("✅")
 
         def check(reaction, user):
@@ -91,17 +94,17 @@ async def start_game(interaction):
             )
 
         try:
-            while not state.join_locked:
+            while not session.join_locked:
                 reaction, user = await interaction.client.wait_for(
                     "reaction_add", timeout=60.0, check=check
                 )
-                if user not in state.join_users:
-                    state.join_users.append(user)
+                if user not in session.join_users:
+                    session.join_users.append(user)
         except asyncio.TimeoutError:
-            if not state.join_locked:
-                state.join_locked = True
+            if not session.join_locked:
+                session.join_locked = True
 
-        if state.join_locked:
+        if session.join_locked:
             await run_game(interaction)
     except Exception as e:
         print(f"Erreur lors du démarrage du jeu: {e}")
@@ -109,8 +112,9 @@ async def start_game(interaction):
 
 async def lock_game(interaction):
     try:
-        if not state.join_locked:
-            state.join_locked = True
+        session = get_session(interaction.guild)
+        if not session.join_locked:
+            session.join_locked = True
             await interaction.followup.send(
                 "🔒 Inscriptions verrouillées. La partie démarre !"
             )
@@ -126,32 +130,33 @@ async def lock_game(interaction):
 
 async def run_game(interaction):
     try:
-        state.game_active = True
-        state.votes.clear()
-        state.wolf_votes.clear()
-        state.dead_players.clear()
-        state.amoureux_pair.clear()
-        state.vision_used = False
-        state.witch_heal_used = False
-        state.witch_kill_used = False
-        state.victim_of_wolves = None
-        state.victim_of_witch = None
-        state.tir_cible = None
+        session = get_session(interaction.guild)
+        session.game_active = True
+        session.votes.clear()
+        session.wolf_votes.clear()
+        session.dead_players.clear()
+        session.amoureux_pair.clear()
+        session.vision_used = False
+        session.witch_heal_used = False
+        session.witch_kill_used = False
+        session.victim_of_wolves = None
+        session.victim_of_witch = None
+        session.tir_cible = None
 
         total_roles = sum(
             role_data["quantity"] for role_data in config.ROLES_CONFIG.values()
         )
-        if len(state.join_users) < total_roles:
+        if len(session.join_users) < total_roles:
             await interaction.channel.send(
                 embed=create_embed(
                     "Erreur",
-                    f"Pas assez de joueurs pour distribuer tous les rôles ({len(state.join_users)}/{total_roles}).",
+                    f"Pas assez de joueurs pour distribuer tous les rôles ({len(session.join_users)}/{total_roles}).",
                 )
             )
-            state.game_active = False
+            session.game_active = False
             return
 
-        random.shuffle(state.join_users)
+        random.shuffle(session.join_users)
         roles = [
             role
             for role, role_data in config.ROLES_CONFIG.items()
@@ -159,38 +164,37 @@ async def run_game(interaction):
         ]
         random.shuffle(roles)
 
-        # Initialiser les joueurs avec leurs rôles
-        state.players = {}
-        state.voyante = None
-        state.sorciere = None
-        state.cupidon = None
-        state.chasseur = None
-        state.corbeau = None
-        state.garde = None
+        session.players = {}
+        session.voyante = None
+        session.sorciere = None
+        session.cupidon = None
+        session.chasseur = None
+        session.corbeau = None
+        session.garde = None
 
         tasks = []
-        for member, role in zip(state.join_users, roles):
-            state.players[member] = role
+        for member, role in zip(session.join_users, roles):
+            session.players[member] = role
             tasks.append(
                 member.send(
                     f"🎭 Tu es **{role}** {config.ROLES_CONFIG[role]['emoji']}\n\n{ROLE_LORE.get(role, 'Prépare-toi pour la partie...')}"
                 )
             )
             if role == "Voyante":
-                state.voyante = member
+                session.voyante = member
             if role == "Sorcière":
-                state.sorciere = member
+                session.sorciere = member
             if role == "Cupidon":
-                state.cupidon = member
+                session.cupidon = member
             if role == "Chasseur":
-                state.chasseur = member
+                session.chasseur = member
             if role == "Corbeau":
-                state.corbeau = member
+                session.corbeau = member
             if role == "Garde":
-                state.garde = member
+                session.garde = member
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        for member, result in zip(state.join_users, results):
+        for member, result in zip(session.join_users, results):
             if isinstance(result, discord.Forbidden):
                 await interaction.channel.send(
                     embed=create_embed(
@@ -206,19 +210,27 @@ async def run_game(interaction):
                 )
 
         await init_channels(interaction.guild)
+
+        # Récupérer la session à nouveau après init_channels (au cas où elle a été modifiée)
+        session = get_session(interaction.guild)
+
         await interaction.channel.send(
-            embed=create_embed("🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !")
+            embed=create_embed(
+                "🎲 Rôles", "Les rôles ont été attribués. Préparez-vous !"
+            )
         )
         await night_phase(interaction.channel)
     except Exception as e:
         print(f"Erreur lors de l'exécution du jeu: {e}")
-        state.game_active = False
+        session = get_session(interaction.guild)
+        session.game_active = False
 
 
 async def night_phase(ctx):
     try:
-        state.current_phase = "night"
-        await mute_voice_channel()
+        session = get_session(ctx.guild)
+        session.current_phase = "night"
+        await mute_voice_channel(ctx.guild)
         await corbeau_phase(ctx)
         await cupidon_phase(ctx)
         await garde_phase(ctx)
@@ -232,9 +244,14 @@ async def night_phase(ctx):
 
 async def cupidon_phase(ctx):
     try:
-        state.current_phase = "cupidon"
-        if state.cupidon and state.cupidon not in state.dead_players and state.cupidon_channel:
-            await state.cupidon_channel.send(
+        session = get_session(ctx.guild)
+        session.current_phase = "cupidon"
+        if (
+            session.cupidon
+            and session.cupidon not in session.dead_players
+            and session.cupidon_channel
+        ):
+            await session.cupidon_channel.send(
                 embed=create_embed(
                     "💘 Cupidon",
                     "Cupidon s'éveille sous les étoiles. Utilisez `!cupidon @joueur1 @joueur2`.",
@@ -242,11 +259,11 @@ async def cupidon_phase(ctx):
             )
             for _ in range(config.PHASE_TIMEOUTS["role_action"] // 2):
                 await asyncio.sleep(2)
-                if len(state.amoureux_pair) == 2:
+                if len(session.amoureux_pair) == 2:
                     return
-            if len(state.amoureux_pair) < 2:
+            if len(session.amoureux_pair) < 2:
                 try:
-                    await state.cupidon_channel.send(
+                    await session.cupidon_channel.send(
                         embed=create_embed(
                             "Cupidon", "⏰ Temps écoulé, aucun couple n'a été formé."
                         )
@@ -259,19 +276,24 @@ async def cupidon_phase(ctx):
 
 async def garde_phase(ctx):
     try:
-        if state.garde and state.garde not in state.dead_players and state.garde_channel:
-            await state.garde_channel.send(
+        session = get_session(ctx.guild)
+        if (
+            session.garde
+            and session.garde not in session.dead_players
+            and session.garde_channel
+        ):
+            await session.garde_channel.send(
                 embed=create_embed(
                     "🛡️ Garde",
-                    f"{state.garde.mention}, utilisez `/proteger @joueur` pour protéger un joueur cette nuit.",
+                    f"{session.garde.mention}, utilisez `/proteger @joueur` pour protéger un joueur cette nuit.",
                 )
             )
             for _ in range(config.PHASE_TIMEOUTS["role_action"] // 2):
                 await asyncio.sleep(2)
-                if state.protected_tonight:
+                if session.protected_tonight:
                     return
             try:
-                await state.garde_channel.send(
+                await session.garde_channel.send(
                     embed=create_embed(
                         "🛡️ Garde", "⏰ Temps écoulé, vous n'avez protégé personne."
                     )
@@ -284,14 +306,19 @@ async def garde_phase(ctx):
 
 async def voyante_phase(ctx):
     try:
-        if state.voyante and state.voyante not in state.dead_players and state.seer_channel:
+        session = get_session(ctx.guild)
+        if (
+            session.voyante
+            and session.voyante not in session.dead_players
+            and session.seer_channel
+        ):
             try:
-                await state.seer_channel.send(
-                    f"{state.voyante.mention}, utilisez `!voir_role @joueur`."
+                await session.seer_channel.send(
+                    f"{session.voyante.mention}, utilisez `!voir_role @joueur`."
                 )
                 for _ in range(config.PHASE_TIMEOUTS["role_action"] // 2):
                     await asyncio.sleep(2)
-                    if state.vision_used:
+                    if session.vision_used:
                         break
             except Exception as e:
                 print(f"Erreur lors de l'envoi du message à la Voyante: {e}")
@@ -301,18 +328,25 @@ async def voyante_phase(ctx):
 
 async def loups_phase(ctx):
     try:
-        if state.wolf_channel:
+        session = get_session(ctx.guild)
+        if session.wolf_channel:
             try:
-                await state.wolf_channel.send(
+                await session.wolf_channel.send(
                     embed=create_embed(
                         "🐺 Loups-Garous", "Discutez et votez avec `!lg_vote @joueur`."
                     )
                 )
+                wolves_count = len(
+                    [
+                        p
+                        for p in session.players
+                        if session.players[p] == "Loup-Garou"
+                        and p not in session.dead_players
+                    ]
+                )
                 for _ in range(config.PHASE_TIMEOUTS["role_action"] // 2):
                     await asyncio.sleep(2)
-                    if len(state.wolf_votes) >= len(
-                        [p for p in state.players if state.players[p] == "Loup-Garou"]
-                    ):
+                    if len(session.wolf_votes) >= wolves_count:
                         break
             except Exception as e:
                 print(f"Erreur lors de l'envoi du message aux Loups-Garous: {e}")
@@ -322,17 +356,22 @@ async def loups_phase(ctx):
 
 async def sorciere_phase(ctx):
     try:
-        if state.sorciere and state.sorciere not in state.dead_players and state.witch_channel:
+        session = get_session(ctx.guild)
+        if (
+            session.sorciere
+            and session.sorciere not in session.dead_players
+            and session.witch_channel
+        ):
             try:
-                if state.victim_of_wolves and not state.witch_heal_used:
-                    await state.witch_channel.send(
+                if session.victim_of_wolves and not session.witch_heal_used:
+                    await session.witch_channel.send(
                         embed=create_embed(
                             "Sorcière",
-                            f"{state.sorciere.mention}, {state.victim_of_wolves.display_name} est attaqué. `!sauver` ou `!tuer @joueur`.",
+                            f"{session.sorciere.mention}, {session.victim_of_wolves.display_name} est attaqué. `!sauver` ou `!tuer @joueur`.",
                         )
                     )
                 else:
-                    await state.witch_channel.send(
+                    await session.witch_channel.send(
                         embed=create_embed(
                             "Sorcière", "Vous pouvez encore utiliser `!tuer @joueur`."
                         )
@@ -342,7 +381,7 @@ async def sorciere_phase(ctx):
             try:
                 for _ in range(config.PHASE_TIMEOUTS["role_action"] // 2):
                     await asyncio.sleep(2)
-                    if state.witch_heal_used or state.witch_kill_used:
+                    if session.witch_heal_used or session.witch_kill_used:
                         break
             except Exception as e:
                 print(f"Erreur lors de l'attente de l'action de la Sorcière: {e}")
@@ -352,12 +391,17 @@ async def sorciere_phase(ctx):
 
 async def corbeau_phase(ctx):
     try:
-        if state.corbeau and state.corbeau not in state.dead_players and state.log_channel:
+        session = get_session(ctx.guild)
+        if (
+            session.corbeau
+            and session.corbeau not in session.dead_players
+            and session.log_channel
+        ):
             try:
-                await state.log_channel.send(
+                await session.log_channel.send(
                     embed=create_embed(
                         "🪶 Corbeau",
-                        f"{state.corbeau.mention}, utilisez `/marquer @joueur` pour ajouter un malus de votes.",
+                        f"{session.corbeau.mention}, utilisez `/marquer @joueur` pour ajouter un malus de votes.",
                     )
                 )
                 await asyncio.sleep(config.PHASE_TIMEOUTS["role_action"])
@@ -369,18 +413,22 @@ async def corbeau_phase(ctx):
 
 async def resolve_night(ctx):
     try:
-        await unmute_voice_channel()
+        session = get_session(ctx.guild)
+        await unmute_voice_channel(ctx.guild)
         deaths = []
 
         if (
-            state.victim_of_wolves
-            and state.victim_of_wolves not in state.dead_players
-            and state.victim_of_wolves != state.protected_tonight
+            session.victim_of_wolves
+            and session.victim_of_wolves not in session.dead_players
+            and session.victim_of_wolves != session.protected_tonight
         ):
-            deaths.append(state.victim_of_wolves)
+            deaths.append(session.victim_of_wolves)
 
-        if state.victim_of_witch and state.victim_of_witch not in state.dead_players:
-            deaths.append(state.victim_of_witch)
+        if (
+            session.victim_of_witch
+            and session.victim_of_witch not in session.dead_players
+        ):
+            deaths.append(session.victim_of_witch)
 
         for player in deaths:
             await remove_player(ctx, player)
@@ -393,10 +441,12 @@ async def resolve_night(ctx):
                 )
             )
         else:
-            await ctx.send(embed=create_embed("🌞 Matin calme", "La nuit fut paisible."))
+            await ctx.send(
+                embed=create_embed("🌞 Matin calme", "La nuit fut paisible.")
+            )
 
-        state.last_protected = state.protected_tonight
-        state.protected_tonight = None
+        session.last_protected = session.protected_tonight
+        session.protected_tonight = None
 
         await day_phase(ctx)
     except Exception as e:
@@ -405,8 +455,9 @@ async def resolve_night(ctx):
 
 async def day_phase(ctx):
     try:
-        state.current_phase = "day"
-        living_players = [p for p in state.players if p not in state.dead_players]
+        session = get_session(ctx.guild)
+        session.current_phase = "day"
+        living_players = [p for p in session.players if p not in session.dead_players]
         emojis = list(map(chr, range(0x1F1E6, 0x1F1E6 + len(living_players))))
         vote_map = dict(zip(emojis, living_players))
 
@@ -415,7 +466,9 @@ async def day_phase(ctx):
         )
 
         malus_info = (
-            "\n\n⚠️ Un joueur a été marqué cette nuit..." if state.corbeau_target else ""
+            "\n\n⚠️ Un joueur a été marqué cette nuit..."
+            if session.corbeau_target
+            else ""
         )
         embed = create_embed(
             "📩 Vote anonyme",
@@ -438,18 +491,22 @@ async def day_phase(ctx):
             vote_map[r.emoji]: r.count - 1 for r in msg.reactions if r.emoji in vote_map
         }
 
-        if state.corbeau_target in reaction_counts:
-            reaction_counts[state.corbeau_target] -= 2
-            if reaction_counts[state.corbeau_target] < 0:
-                reaction_counts[state.corbeau_target] = 0
-        state.corbeau_target = None  # reset every day
+        if session.corbeau_target in reaction_counts:
+            reaction_counts[session.corbeau_target] -= 2
+            if reaction_counts[session.corbeau_target] < 0:
+                reaction_counts[session.corbeau_target] = 0
+        session.corbeau_target = None  # reset every day
 
         if reaction_counts:
             max_votes = max(reaction_counts.values())
-            candidates = [p for p, count in reaction_counts.items() if count == max_votes]
+            candidates = [
+                p for p, count in reaction_counts.items() if count == max_votes
+            ]
             eliminated = random.choice(candidates)
             await ctx.send(
-                embed=create_embed("⚖️ Verdict", f"{eliminated.display_name} a été éliminé.")
+                embed=create_embed(
+                    "⚖️ Verdict", f"{eliminated.display_name} a été éliminé."
+                )
             )
             await remove_player(ctx, eliminated)
         else:
@@ -464,23 +521,26 @@ async def day_phase(ctx):
 
 async def remove_player(ctx, player):
     try:
-        if player not in state.players:
+        session = get_session(ctx.guild)
+        if player not in session.players:
             return
 
-        role = state.players.pop(player)
-        state.dead_players.add(player)
+        role = session.players.pop(player)
+        session.dead_players.add(player)
 
-        await remove_channel_permissions(player)
+        await remove_channel_permissions(player, ctx.guild)
         try:
             await ctx.send(
-                embed=create_embed("✝️ Révélation", f"{player.display_name} était **{role}**.")
+                embed=create_embed(
+                    "✝️ Révélation", f"{player.display_name} était **{role}**."
+                )
             )
         except Exception as e:
             print(f"Erreur lors de la révélation du rôle: {e}")
 
-        if player in state.amoureux_pair:
-            for autre in state.amoureux_pair:
-                if autre != player and autre not in state.dead_players:
+        if player in session.amoureux_pair:
+            for autre in session.amoureux_pair:
+                if autre != player and autre not in session.dead_players:
                     try:
                         await ctx.send(
                             embed=create_embed(
@@ -502,14 +562,19 @@ async def remove_player(ctx, player):
                 )
             except Exception as e:
                 print(f"Erreur lors de l'envoi du message au Chasseur: {e}")
-            state.tir_cible = player
+            session.tir_cible = player
     except Exception as e:
         print(f"Erreur lors de la suppression d'un joueur: {e}")
 
 
 async def check_game_end(ctx):
     try:
-        roles_alive = [role for player, role in state.players.items() if player not in state.dead_players]
+        session = get_session(ctx.guild)
+        roles_alive = [
+            role
+            for player, role in session.players.items()
+            if player not in session.dead_players
+        ]
         if not roles_alive:
             await ctx.send(
                 embed=create_embed("🏆 Fin de partie", "Tous les joueurs sont morts !")
@@ -529,13 +594,15 @@ async def check_game_end(ctx):
             await night_phase(ctx)
     except Exception as e:
         print(f"Erreur lors de la vérification de fin de partie: {e}")
-        state.game_active = False
+        session = get_session(ctx.guild)
+        session.game_active = False
 
 
 async def end_game(ctx):
-    reset_roles_config()
+    await reset_roles_config()
     try:
-        state.game_active = False
+        session = get_session(ctx.guild)
+        session.game_active = False
         await ctx.send(
             embed=create_embed("🏋️ Fin", "La partie est terminée. Merci d'avoir joué !")
         )
